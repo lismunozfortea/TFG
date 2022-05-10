@@ -4,14 +4,12 @@
 #include "SPI.h"
 #include "FS.h"
 /*Cosas que faltan:
- - Programar botones numericos para que asignen lo pulsado a variable temp_usuario
  - Coordinar los pines y conexiones de los sensores y  de la Peltier
  */
 
 // Incluimos las librerías
 #include <OneWire.h> // Librería para la comunicación con un solo cable 
-//#include <URTouch.h>
-//#include <URTouchCD.h>
+
 
 // ********** TFT_eSPI screen **********
 #define TFT_CS 15
@@ -41,7 +39,7 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
   float temp_usuario; //temperatura definida por el usuario
   float temp_lim1; //temperatura inferior del límite
   float temp_lim2; //temperatura superior del límite
-  
+  int seleccion[1];
     
 
   int puente_H = 9; // Pin digital 9 para la señal de entrada del puente
@@ -51,8 +49,7 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
   int encender_PID = 0; //pulsador para modo PID
   int anterior_Peltier = 0;
   int estado_Peltier = 0;
-  
-  //int Peltier = 0;
+
 
   
   OneWire ourWire(pinSensorF); // Se establece el pin digital 0 para la comunicación OneWire (no entiendo muy bien si necesito esto)
@@ -102,6 +99,7 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
     Lectura_Temperatura_fria();
     Lectura_Temperatura_caliente();
     // Función que controla el estado (ON/OFF) de la célula Peltier
+    Pulsaciones_TFT();
     Celula_Peltier();
     Modo_PID();
     Apagar();
@@ -192,7 +190,7 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
         
 
       uint16_t t_x = 0, t_y = 0; // coordenadas pulsacion
-  bool pressed = tft.getTouch(&t_x, &t_y);  // true al pulsar
+      bool pressed = tft.getTouch(&t_x, &t_y);  // true al pulsar
 
   // Comprueba si pulsas en zona de botón
   for (uint8_t b = 0; b < totalButtonNumber; b++) {
@@ -214,70 +212,164 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
       switch (b) {
         case 0: 
+
+        if(seleccion[0]=/0)
+        {
           tft.setCursor(60,30);
           tft.print("0");
+          seleccion[0]=0;
+          else
+          tft.setCursor(70,30);
+          tft.print("0");
+          seleccion[1]=0;
+          }
+
          
          
           break;
         case 1:
        
-         tft.setCursor(60,30);
+          if(seleccion[0]=/1)
+        {
+          tft.setCursor(60,30);
           tft.print("1");
+          seleccion[0]=1;
+          else
+          tft.setCursor(70,30);
+          tft.print("1");
+          seleccion[1]=1;
+          }
+
         
           break;
            case 2: 
-            tft.setCursor(60,30);
+             if(seleccion[0]=/2)
+        {
+          tft.setCursor(60,30);
           tft.print("2");
+          seleccion[0]=2;
+          else
+          tft.setCursor(70,30);
+          tft.print("2");
+          seleccion[1]=2;
+          }
+
         
          break;
 
          case 3: 
+          if(seleccion[0]=/3)
+        {
           tft.setCursor(60,30);
           tft.print("3");
+          seleccion[0]=3;
+          else
+          tft.setCursor(70,30);
+          tft.print("3");
+          seleccion[1]=3;
+          }
+
       
          break;
          case 4:
        
-         tft.setCursor(60,30);
+          if(seleccion[0]=/4)
+        {
+          tft.setCursor(60,30);
           tft.print("4");
+          seleccion[0]=4;
+          else
+          tft.setCursor(70,30);
+          tft.print("4");
+          seleccion[1]=4;
+          }
+
         
           break;
            case 5: 
-         tft.setCursor(60,30);
+         if(seleccion[0]=/5)
+        {
+          tft.setCursor(60,30);
           tft.print("5");
+          seleccion[0]=5;
+          else
+          tft.setCursor(70,30);
+          tft.print("5");
+          seleccion[1]=5;
+          }
+
          break;
 
          case 6: 
+          if(seleccion[0]=/6)
+        {
           tft.setCursor(60,30);
           tft.print("6");
+          seleccion[0]=6;
+          else
+          tft.setCursor(70,30);
+          tft.print("6");
+          seleccion[1]=6;
+          }
+
       
          break;
          case 7:
-       
-         tft.setCursor(60,30);
+         if(seleccion[0]=/7)
+        {
+          tft.setCursor(60,30);
           tft.print("7");
+          seleccion[0]=7;
+          else
+          tft.setCursor(70,30);
+          tft.print("7");
+          seleccion[1]=7;
+          }
+
         
           break;
            case 8: 
-         tft.setCursor(60,30);
+          if(seleccion[0]=/8)
+        {
+          tft.setCursor(60,30);
           tft.print("8");
+          seleccion[0]=8;
+          else
+          tft.setCursor(70,30);
+          tft.print("8");
+          seleccion[1]=8;
+          }
+
          break;
 
          case 9: 
-       tft.setCursor(60,30);
+       if(seleccion[0]=/9)
+        {
+          tft.setCursor(60,30);
           tft.print("9");
+          seleccion[0]=9;
+          else
+          tft.setCursor(70,30);
+          tft.print("9");
+          seleccion[1]=9;
+          }
+
          break;
+
+          case 10: 
+        temp_usuario= atof(seleccion); //no estoy segura de esto
+        
+        encender_PID=1;
+        
+           if (tempC>=temp_max || tempF<=temp_min)
+         encender_PID=0;
          
+         break;
         default:
           delay(1);
           
       }
     }
-
-//temp_usuario= cadena;
-
- if (tempC>=temp_max || tempF<=temp_min)
-         encender_PID=0;
  
          
     if (keyN[b].justPressed()) {
@@ -481,6 +573,8 @@ void botones_Numerico()
   keyN[8].drawButton();
   keyN[9].initButton(&tft, 40, 120, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "9" , 1 );
   keyN[9].drawButton();
+  keyN[10].initButton(&tft, 20, 180, 60, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Start" , 1 );
+  keyN[10].drawButton();
 
 }
 //####################################################################################################
