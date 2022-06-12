@@ -1,4 +1,6 @@
+// ***** LIBRERIAS *****
 #include <TFT_eSPI.h>
+#include <PIDController.hpp>
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include "SPI.h"
@@ -7,7 +9,6 @@
  - Coordinar los pines y conexiones de los sensores y  de la Peltier
  */
 
-// Incluimos las librerías
 #include <OneWire.h> // Librería para la comunicación con un solo cable 
 
 
@@ -19,7 +20,7 @@
 #define TOUCH_CS 21  //Touch CS to PIN 21
 #define CALIBRATION_FILE "/TouchCalData2" // Calibration file stored in SPIFFS
 #define REPEAT_CAL false // if true calibration is requested after reboot
-#define totalButtonNumber 3
+#define totalButtonNumber 20
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -27,9 +28,14 @@ TFT_eSPI tft = TFT_eSPI();
 #define LABEL2_FONT &FreeSansBold12pt7b    // Key label font 2
 TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
+// ********** PID **********
+const int PIN_INPUT = 0;
+const int PIN_OUTPUT = 3;
 
+PID::PIDParameters<double> parameters(4.0, 0.2, 1);
+PID::PIDController<double> pidController(parameters);
 
-// Declaracion de variables globales
+// *****Declaracion de variables globales *****
   float tempC; // Variable para almacenar el valor obtenido del sensor (0 a 1023)
   float tempF;
   int pinSensorF = 0; // Variable del pin de entrada del sensor frio (A0)
@@ -44,11 +50,11 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
   int puente_H = 9; // Pin digital 9 para la señal de entrada del puente
     
-  // Variables internas para los pulsadores con enclavamiento
+  // ****** Variables internas para los pulsadores con enclavamiento *****
   int encender_Peltier = 0; //pulsador modo por defecto
   int encender_PID = 0; //pulsador para modo PID
-  int anterior_Peltier = 0;
-  int estado_Peltier = 0;
+  //int anterior_Peltier = 0;
+  //int estado_Peltier = 0;
 
 
   
@@ -75,6 +81,12 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
     
     sensor.begin(); // Se inicializa el sensor de temperatura 
 
+     // ********** Inicializar PID ********** 
+     pidController.Input = analogRead(PIN_INPUT);
+  pidController.Setpoint = 100;
+
+  pidController.TurnOn();
+
  // ********** TFT_eSPI screen library **********
   tft.begin();
  // tft.invertDisplay(false); // Solo requerido si los colores están invertidos
@@ -98,12 +110,23 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
     //Funciones que lee la temperatura del sensor 
     Lectura_Temperatura_fria();
     Lectura_Temperatura_caliente();
-    // Función que controla el estado (ON/OFF) de la célula Peltier
+    // Función que controla las pulsaciones del menu de inicio
     Pulsaciones_TFT();
+     // Función que controla el estado (ON/OFF) de la célula Peltier
     Celula_Peltier();
-    Modo_PID();
-    Apagar();
+    //Funcion que controla el boton de apagado
+     Apagar();
     
+//****MODO TEMP.UNICA ******
+If(encender_PID==1)
+{
+pidController.Input = analogRead(PIN_INPUT);
+  pidController.Update();
+
+  analogWrite(PIN_OUTPUT, pidController.Output);
+  encender_PID=0;
+    
+    }
  
     
   }
@@ -157,9 +180,6 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
         
         
           break;
-           case 2: //definir limites de la curva de temperatura
-        Pulsaciones_ModoLimites();
-         break;
         default:
           delay(1);
        
@@ -169,13 +189,11 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
       
       key[b].drawButton(true);  // cambia color del botón al pulsar
       
-      delay(10); // UI debouncing
+      delay(10); // evitar rebotes de pulsacion
     }
   }
 
-    delay(10); // evitar rebotes de pulsacion
-  }
-  }
+ 
 
   //####################################################################################################
   //Funcion control pulsaciones de los botones en la opción PID (elige temperatura el usuario)
@@ -212,7 +230,7 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
       switch (b) {
         case 0: 
-
+//Gestión de las pulsaciones del teclado numérico
         if(seleccion[0]=/0)
         {
           tft.setCursor(60,30);
@@ -356,11 +374,14 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
          break;
 
-          case 10: 
+          case 10: //botón de start
+          // se convierte el vector en un float
         temp_usuario= atof(seleccion); //no estoy segura de esto
-        
+
+        //decimos al PID que se active
         encender_PID=1;
-        
+
+        //apagado en caso de llegar a los límites establecidos
            if (tempC>=temp_max || tempF<=temp_min)
          encender_PID=0;
          
@@ -374,115 +395,11 @@ TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
          
     if (keyN[b].justPressed()) {
       keyN[b].drawButton(true);  // cambia color del botón al pulsar
-      delay(10); // UI debouncing
+      delay(10); // evitar rebotes de pulsacion
     }
   }
 
-  
-   
 
-    delay(10); // evitar rebotes de pulsacion
-  }
-  }
-//####################################################################################################
-  //Funcion control pulsaciones de los botones en la opción limites
-//####################################################################################################
- /*void Pulsaciones_ModoTempLimites()
-  {
-   
-         tft.fillScreen(defcolor);
-         tft.setTextColor(ILI9341_BLACK);
-          tft.setCursor(60,20);
-          tft.print("Introduzca limite superior:");
-  
-        botones_Numerico();
-         
-
-      uint16_t t_x = 0, t_y = 0; // coordenadas pulsacion
-  bool pressed = tft.getTouch(&t_x, &t_y);  // true al pulsar
-
-  // Comprueba si pulsas en zona de botón
-  for (uint8_t b = 0; b < totalButtonNumber; b++) {
-    if (pressed && key[b].contains(t_x, t_y)) {
-      key[b].press(true);
-      Serial.print(t_x);
-      Serial.print(",");
-      Serial.println(t_y);
-    } else {
-      key[b].press(false);
-    }
-  }
-
-  // Accion si se pulsa boton
-  for (uint8_t b = 0; b < totalButtonNumber; b++) {
-
-    if (key[b].justReleased()) {
-    key[b].drawButton(); // redibuja al soltar
-
-      switch (b) {
-        case 0: 
-         
-         
-         
-          break;
-        case 1:
-       
-        
-        
-          break;
-           case 2: 
-        
-         break;
-
-         case 3: 
-      
-         break;
-         case 4:
-       
-        
-        
-          break;
-           case 5: 
-        
-         break;
-
-         case 6: 
-      
-         break;
-         case 7:
-       
-        
-        
-          break;
-           case 8: 
-        
-         break;
-
-         case 9: 
-      
-         break;
-         
-        default:
-          delay(1);
-          
-      }
-    }
-
-      tft.fillScreen(defcolor);
-         tft.setTextColor(ILI9341_BLACK);
-          tft.setCursor(60,20);
-          tft.print("Introduzca limite inferior:");
-           botones_Numerico();
-         
-    if (key[b].justPressed()) {
-      key[b].drawButton(true);  // cambia color del botón al pulsar
-      delay(10); // UI debouncing
-    }
-  }
-
-    delay(10); // evitar rebotes de pulsacion
-  }
-  }*/
 
 //####################################################################################################
   //Funcion para el apagado de emergencia
@@ -539,8 +456,6 @@ void botones_MenuInicio()
   key[0].drawButton();
   key[1].initButton(&tft, 80, 115, 110, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Mod.Temp.Unica" , 1 );
   key[1].drawButton();
-  key[2].initButton(&tft, 150, 40, 110, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Mod.Limites" , 1 ); // x, y, w, h, outline, fill, color, label, text_Size
-  key[2].drawButton();
 
 }
 //####################################################################################################
@@ -639,31 +554,6 @@ void botones_Numerico()
       }   
 
   }
-
-   //####################################################################################################
- // Función que controla el estado (ON/OFF) del modo PID
-//####################################################################################################
-  void Modo_PID()
-   {
-      
-      // Si es la 1ª vez que presionamos el pulsador del modo PID 
-      if(encender_PID == 1)
-      {
-       
-        
-        if(tempF >= (temp_usuario+1))
-        {
-          encender_Peltier = 1;// Se enciende la célula Peltier
-        }
-        
-        if(tempF <= (temp_usaurio-1))
-        {
-          encender_Peltier = 0;// Se apaga la célula Peltier
-        }      
-      }
-      
-      
-   }
   
   
   
