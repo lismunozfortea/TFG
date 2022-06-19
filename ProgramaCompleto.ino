@@ -9,7 +9,7 @@
  - Coordinar los pines y conexiones de los sensores y  de la Peltier
  */
 
-#include <OneWire.h> // Librería para la comunicación con un solo cable 
+//#include <OneWire.h> // Librería para la comunicación con un solo cable 
 
 
 // ********** TFT_eSPI screen **********
@@ -29,7 +29,7 @@ TFT_eSPI tft = TFT_eSPI();
 TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
 // ********** PID **********
-const int PIN_INPUT = 0;
+const int PIN_INPUT = 0; //revisar
 const int PIN_OUTPUT = 3;
 
 PID::PIDParameters<double> parameters(4.0, 0.2, 1);
@@ -43,8 +43,8 @@ PID::PIDController<double> pidController(parameters);
   float temp_max = 60;
   float temp_min = -5;
   float temp_usuario; //temperatura definida por el usuario
-  float temp_lim1; //temperatura inferior del límite
-  float temp_lim2; //temperatura superior del límite
+ /*float temp_lim1; //temperatura inferior del límite
+  float temp_lim2; //temperatura superior del límite*/
   int seleccion[1];
     
 
@@ -53,13 +53,12 @@ PID::PIDController<double> pidController(parameters);
   // ****** Variables internas para los pulsadores con enclavamiento *****
   int encender_Peltier = 0; //pulsador modo por defecto
   int encender_PID = 0; //pulsador para modo PID
-  //int anterior_Peltier = 0;
-  //int estado_Peltier = 0;
+  
 
 
   
-  OneWire ourWire(pinSensorF); // Se establece el pin digital 0 para la comunicación OneWire (no entiendo muy bien si necesito esto)
-  OneWire ourWire(pinSensorC); 
+  /*OneWire ourWire(pinSensorF); // Se establece el pin digital 0 para la comunicación OneWire (no entiendo muy bien si necesito esto)
+  OneWire ourWire(pinSensorC); */
   
   
   void setup() 
@@ -67,6 +66,7 @@ PID::PIDController<double> pidController(parameters);
     pinMode(pinSensorF, INPUT); // Pin digital 0 como entrada
     pinMode(pinSensorC, INPUT); 
     pinMode(puente_H, OUTPUT); // Pin digital 9 como salida
+    
      // Set all chip selects high to avoid bus contention during initialisation of each peripheral
   digitalWrite(TOUCH_CS, HIGH); // ********** TFT_eSPI touch **********
   digitalWrite(TFT_CS, HIGH); // ********** TFT_eSPI screen library **********
@@ -79,12 +79,11 @@ PID::PIDController<double> pidController(parameters);
     
     digitalWrite(Puente_H, LOW); // Puente_H inicialmente desconectado
     
-    sensor.begin(); // Se inicializa el sensor de temperatura 
+    //sensor.begin(); // Se inicializan los sensores de temperatura 
 
      // ********** Inicializar PID ********** 
      pidController.Input = analogRead(PIN_INPUT);
   pidController.Setpoint = 100;
-
   pidController.TurnOn();
 
  // ********** TFT_eSPI screen library **********
@@ -98,7 +97,7 @@ PID::PIDController<double> pidController(parameters);
 
   // ********** First print **********
   int defcolor = ConvertRGBto565(131, 131, 131);
-  botones_MenuInicio();
+  Pulsaciones_ModoTempUnica();
    
 
  
@@ -110,8 +109,8 @@ PID::PIDController<double> pidController(parameters);
     //Funciones que lee la temperatura del sensor 
     Lectura_Temperatura_fria();
     Lectura_Temperatura_caliente();
-    // Función que controla las pulsaciones del menu de inicio
-    Pulsaciones_TFT();
+    // Función que controla las pulsaciones 
+    Pulsaciones_ModoTempUnica();
      // Función que controla el estado (ON/OFF) de la célula Peltier
     Celula_Peltier();
     //Funcion que controla el boton de apagado
@@ -120,79 +119,42 @@ PID::PIDController<double> pidController(parameters);
 //****MODO TEMP.UNICA ******
 If(encender_PID==1)
 {
-pidController.Input = analogRead(PIN_INPUT);
-  pidController.Update();
-
-  analogWrite(PIN_OUTPUT, pidController.Output);
-  encender_PID=0;
-    
-    }
- 
-    
-  }
-//####################################################################################################
-  //Funcion control pulsaciones de los botones iniciales TFT
-//####################################################################################################
-  void Pulsaciones_TFT()
-  {
-
-      uint16_t t_x = 0, t_y = 0; // coordenadas pulsacion
-  bool pressed = tft.getTouch(&t_x, &t_y);  // true al pulsar
-
-  // Comprueba si pulsas en zona de botón
-  for (uint8_t b = 0; b < totalButtonNumber; b++) {
-    if (pressed && key[b].contains(t_x, t_y)) {
-      key[b].press(true);
-      Serial.print(t_x);
-      Serial.print(",");
-      Serial.println(t_y);
-    } else {
-      key[b].press(false);
-    }
-  }
-
-  // Accion si se pulsa boton
-  for (uint8_t b = 0; b < totalButtonNumber; b++) {
-
-    if (key[b].justReleased()) {
-     
-
-      switch (b) {
-        case 0: //modo por defecto
-         endender_Peltier=1;
-         tft.fillScreen(defcolor);
+    encender_Peltier=1;
+        tft.fillScreen(defcolor);
          tft.setTextColor(ILI9341_BLACK);
           tft.setCursor(60,30);
           tft.print("Temperatura:");
         tft.setCursor(60,100);
         tft.print(tempF);
          tft.print("\337C");
-          
-         if (tempC>=temp_max || tempF<=temp_min)
+     pidController.Input = analogRead(PIN_INPUT);
+      pidController.Update();
+  
+  analogWrite(PIN_OUTPUT, pidController.Output);
+  
+    //apagado de emergencia en caso de llegar a los límites establecidos
+           if (tempC>=temp_max || tempF<=temp_min){
+         encender_PID=0;
          encender_Peltier=0;
-         
-         
-         }
-         
-          break;
-        case 1: //ir a temperatura definida por el usuario
-       Pulsaciones_ModoTempUnica();
-        
-        
-          break;
-        default:
-          delay(1);
-       
-      }
-    }
-    if (key[b].justPressed()) {
-      
-      key[b].drawButton(true);  // cambia color del botón al pulsar
-      
-      delay(10); // evitar rebotes de pulsacion
-    }
-  }
+ }
+         //funcion para que aparezca un aviso cuando la temperatura se estabilice
 
+         If(tempF==temp_usuario) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
+         {
+           tft.setCursor(60,120);
+          tft.print("Temperatura estable, apunte los resultados");
+          encender_Peltier=0;
+          encender_PID=0;
+          
+         }
+
+          //incluir botón que permita volver atrás para introducir otra temperatura y volver a medir
+
+          
+    }
+ 
+    
+  }
  
 
   //####################################################################################################
@@ -375,23 +337,17 @@ pidController.Input = analogRead(PIN_INPUT);
          break;
 
           case 10: //botón de start
-          // se convierte el vector en un float
+         { // se convierte el vector en un float
         temp_usuario= atof(seleccion); //no estoy segura de esto
-
         //decimos al PID que se active
         encender_PID=1;
-
-        //apagado en caso de llegar a los límites establecidos
-           if (tempC>=temp_max || tempF<=temp_min)
-         encender_PID=0;
-         
+         }
          break;
         default:
           delay(1);
           
       }
     }
- 
          
     if (keyN[b].justPressed()) {
       keyN[b].drawButton(true);  // cambia color del botón al pulsar
@@ -429,35 +385,13 @@ void Apagar(){
     if (apagado.justReleased()) {
     apagado.drawButton(); // redibuja al soltar
  
-    encender_Peltier=0;
-    encender_PID=0;
+     encender_Peltier=0;
+     encender_PID=0;
 } 
 
   } 
 
   
-//####################################################################################################
-// Funcion para dibujar botones del menu de inicio ********** TFT_eSPI touch **********
-//####################################################################################################
-void botones_MenuInicio()
-{
-   int defcolor = ConvertRGBto565(131, 131, 131);
-   tft.setRotation(1); //Horizontal
- tft.fillScreen(defcolor);
-  tft.setTextColor(ILI9341_BLACK);
-  tft.setTextSize(4);
-  tft.setCursor(60,30);
-  tft.print("¿Como desea medir?");
-
-  // Draw the keys
-  tft.setFreeFont(LABEL1_FONT);
- 
-  key[0].initButton(&tft, 80, 40, 110, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Mod.Defecto" , 1 ); // x, y, w, h, outline, fill, color, label, text_Size
-  key[0].drawButton();
-  key[1].initButton(&tft, 80, 115, 110, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Mod.Temp.Unica" , 1 );
-  key[1].drawButton();
-
-}
 //####################################################################################################
 // Funcion para dibujar el teclado numérico ********** TFT_eSPI touch **********
 //####################################################################################################
