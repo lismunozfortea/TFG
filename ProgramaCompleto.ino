@@ -35,6 +35,10 @@ const int PIN_OUTPUT = 3;
 PID::PIDParameters<double> parameters(4.0, 0.2, 1);
 PID::PIDController<double> pidController(parameters);
 
+// ********** Sensor de corriente **********//
+float sensibility= 0.185;
+int num_muestras=100;
+
 // *****Declaracion de variables globales *****
   float tempC; // Variable para almacenar el valor obtenido del sensor (0 a 1023)
   float tempF;
@@ -115,6 +119,10 @@ PID::PIDController<double> pidController(parameters);
     Celula_Peltier();
     //Funcion que controla el boton de apagado
      Apagar();
+     // Valores sensor de corriente
+     float corriente = getCorriente(num_muestras);
+   float corrienteRMS = 0.707 * corriente;
+   float power = 230.0 * corrienteRMS; 
     
 //****MODO TEMP.UNICA ******
 If(encender_PID==1)
@@ -465,7 +473,21 @@ void botones_Numerico()
   // Esperamos un tiempo para repetir el loop
   delay(1000);
   }
+//####################################################################################################
+ // Función que obtiene el valor de la corriente del sensor de corriente
+//####################################################################################################
 
+float getCorriente(int nmuestras)
+{
+   float voltaje;
+   float corrienteSum = 0;
+   for (int i = 0; i < nmuestras; i++)
+   {
+      voltaje = analogRead(A0) * 5.0 / 1023.0; //CAMBIAR EL PIN A POR EL QUE SEA EL CORRECTO
+      corrienteSum += (voltaje - 2.5) / sensibility;
+   }
+   return(corrienteSum / nmuestras);
+}
   //####################################################################################################
  // Función que controla el estado (ON/OFF) de la célula Peltier
 //####################################################################################################
