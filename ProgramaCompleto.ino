@@ -29,7 +29,7 @@ TFT_eSPI tft = TFT_eSPI();
 TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
 
 // ********** PID **********
-const int PIN_INPUT = 0; //revisar
+const int PIN_INPUT = 0; //REVISAR
 const int PIN_OUTPUT = 3;
 
 PID::PIDParameters<double> parameters(4.0, 0.2, 1);
@@ -42,8 +42,8 @@ int num_muestras=100;
 // *****Declaracion de variables globales *****
   float tempC; // Variable para almacenar el valor obtenido del sensor (0 a 1023)
   float tempF;
-  int pinSensorF = 0; // Variable del pin de entrada del sensor frio (A0)
-  int pinSensorC=1; // Variable del pin de entrada del sensor frio (A0)
+  int pinSensorF = 16; // Variable del pin de entrada del sensor frio (G16)
+  int pinSensorC=17; // Variable del pin de entrada del sensor frio (G17)
   float temp_max = 60;
   float temp_min = -5;
   float temp_usuario; //temperatura definida por el usuario
@@ -52,7 +52,7 @@ int num_muestras=100;
   int seleccion[1];
     
 
-  int puente_H = 9; // Pin digital 9 para la señal de entrada del puente
+  int puente_H = 22; // Pin G22 para la señal de entrada del puente
     
   // ****** Variables internas para los pulsadores con enclavamiento *****
   int encender_Peltier = 0; //pulsador modo por defecto
@@ -67,9 +67,9 @@ int num_muestras=100;
   
   void setup() 
   {
-    pinMode(pinSensorF, INPUT); // Pin digital 0 como entrada
+    pinMode(pinSensorF, INPUT); // Pin digital 16 como entrada
     pinMode(pinSensorC, INPUT); 
-    pinMode(puente_H, OUTPUT); // Pin digital 9 como salida
+    pinMode(puente_H, OUTPUT); // Pin digital 22 como salida
     
      // Set all chip selects high to avoid bus contention during initialisation of each peripheral
   digitalWrite(TOUCH_CS, HIGH); // ********** TFT_eSPI touch **********
@@ -483,8 +483,8 @@ float getCorriente(int nmuestras)
    float corrienteSum = 0;
    for (int i = 0; i < nmuestras; i++)
    {
-      voltaje = analogRead(A0) * 5.0 / 1023.0; //CAMBIAR EL PIN A POR EL QUE SEA EL CORRECTO
-      corrienteSum += (voltaje - 2.5) / sensibility;
+      voltaje = analogRead(G0) * 5.0 / 1023.0; //no se si seria G0 o A0 o 0
+      corrienteSum += (voltaje - 2.5) / sensibility; 
    }
    return(corrienteSum / nmuestras);
 }
