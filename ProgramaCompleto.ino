@@ -1,15 +1,15 @@
 // ***** LIBRERIAS *****
 #include <TFT_eSPI.h>
-#include <PIDController.hpp>
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9341.h"
+#include <PIDController.h>
+//#include "Adafruit_GFX.h"
+//#include "Adafruit_ILI9341.h"
 #include "SPI.h"
 #include "FS.h"
 /*Cosas que faltan:
  - Coordinar los pines y conexiones de los sensores y  de la Peltier
  */
 
-//#include <OneWire.h> // Librería para la comunicación con un solo cable 
+
 
 
 // ********** TFT_eSPI screen **********
@@ -26,7 +26,7 @@ TFT_eSPI tft = TFT_eSPI();
 
 #define LABEL1_FONT &FreeSansOblique12pt7b // Key label font 1
 #define LABEL2_FONT &FreeSansBold12pt7b    // Key label font 2
-TFT_eSPI_Button key[totalButtonNumber];  // TFT_eSPI button class
+TFT_eSPI_Button keyN[totalButtonNumber];  // TFT_eSPI button class
 
 // ********** PID **********
 const int PIN_INPUT = 0; //REVISAR
@@ -52,11 +52,12 @@ int num_muestras=100;
   int seleccion[1];
     
 
-  int puente_H = 22; // Pin G22 para la señal de entrada del puente
+  int Puente_H = 22; // Pin G22 para la señal de entrada del puente
     
   // ****** Variables internas para los pulsadores con enclavamiento *****
   int encender_Peltier = 0; //pulsador modo por defecto
   int encender_PID = 0; //pulsador para modo PID
+   int defcolor = ConvertRGBto565(131, 131, 131);
   
 
 
@@ -100,7 +101,6 @@ int num_muestras=100;
 
 
   // ********** First print **********
-  int defcolor = ConvertRGBto565(131, 131, 131);
   Pulsaciones_ModoTempUnica();
    
 
@@ -125,7 +125,7 @@ int num_muestras=100;
    float power = 230.0 * corrienteRMS; 
     
 //****MODO TEMP.UNICA ******
-If(encender_PID==1)
+if(encender_PID==1)
 {
     encender_Peltier=1;
         tft.fillScreen(defcolor);
@@ -147,7 +147,7 @@ If(encender_PID==1)
  }
          //funcion para que aparezca un aviso cuando la temperatura se estabilice
 
-         If(tempF==temp_usuario) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
+         if(tempF==temp_usuario) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
          {
            tft.setCursor(60,120);
           tft.print("Temperatura estable, apunte los resultados");
@@ -201,7 +201,7 @@ If(encender_PID==1)
       switch (b) {
         case 0: 
 //Gestión de las pulsaciones del teclado numérico
-        if(seleccion[0]=/0)
+        if(seleccion[0]!=0)
         {
           tft.setCursor(60,30);
           tft.print("0");
@@ -217,7 +217,7 @@ If(encender_PID==1)
           break;
         case 1:
        
-          if(seleccion[0]=/1)
+          if(seleccion[0]!=1)
         {
           tft.setCursor(60,30);
           tft.print("1");
@@ -231,7 +231,7 @@ If(encender_PID==1)
         
           break;
            case 2: 
-             if(seleccion[0]=/2)
+             if(seleccion[0]!=2)
         {
           tft.setCursor(60,30);
           tft.print("2");
@@ -246,7 +246,7 @@ If(encender_PID==1)
          break;
 
          case 3: 
-          if(seleccion[0]=/3)
+          if(seleccion[0]!=3)
         {
           tft.setCursor(60,30);
           tft.print("3");
@@ -261,7 +261,7 @@ If(encender_PID==1)
          break;
          case 4:
        
-          if(seleccion[0]=/4)
+          if(seleccion[0]!=4)
         {
           tft.setCursor(60,30);
           tft.print("4");
@@ -275,7 +275,7 @@ If(encender_PID==1)
         
           break;
            case 5: 
-         if(seleccion[0]=/5)
+         if(seleccion[0]!=5)
         {
           tft.setCursor(60,30);
           tft.print("5");
@@ -289,7 +289,7 @@ If(encender_PID==1)
          break;
 
          case 6: 
-          if(seleccion[0]=/6)
+          if(seleccion[0]!=6)
         {
           tft.setCursor(60,30);
           tft.print("6");
@@ -303,7 +303,7 @@ If(encender_PID==1)
       
          break;
          case 7:
-         if(seleccion[0]=/7)
+         if(seleccion[0]!=7)
         {
           tft.setCursor(60,30);
           tft.print("7");
@@ -317,7 +317,7 @@ If(encender_PID==1)
         
           break;
            case 8: 
-          if(seleccion[0]=/8)
+          if(seleccion[0]!=8)
         {
           tft.setCursor(60,30);
           tft.print("8");
@@ -331,7 +331,7 @@ If(encender_PID==1)
          break;
 
          case 9: 
-       if(seleccion[0]=/9)
+       if(seleccion[0]!=9)
         {
           tft.setCursor(60,30);
           tft.print("9");
@@ -437,7 +437,7 @@ void botones_Numerico()
 //####################################################################################################
   //Función que lee la temperatura del sensor cara fria
 //####################################################################################################
-   void Lectura_temperatura_fria()
+   void Lectura_Temperatura_fria()
   {
        // Con analogRead leemos el sensor
   tempF = analogRead(pinSensorF); 
@@ -457,7 +457,7 @@ void botones_Numerico()
  //####################################################################################################
  //Función que lee la temperatura del sensor de la cara caliente
 //####################################################################################################
-   void Lectura_temperatura_caliente()
+   void Lectura_Temperatura_caliente()
   {
        // Con analogRead leemos el sensor
   tempC = analogRead(pinSensorC); 
@@ -483,7 +483,7 @@ float getCorriente(int nmuestras)
    float corrienteSum = 0;
    for (int i = 0; i < nmuestras; i++)
    {
-      voltaje = analogRead(G0) * 5.0 / 1023.0; //no se si seria G0 o A0 o 0
+      voltaje = analogRead(0) * 5.0 / 1023.0; //no se si seria G0 o A0 o 0
       corrienteSum += (voltaje - 2.5) / sensibility; 
    }
    return(corrienteSum / nmuestras);
