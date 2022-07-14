@@ -14,47 +14,43 @@ float salida_corriente_reg; //salida de corriente después de la acción del reg
 float lectura_tempC; //entre 0 y 4095
 float lectura_tempF;
 float lectura_corriente;
-float valor_corriente;
-float valor_tempF;
+//float valor_corriente;
+//float valor_tempF;
 float valor_tempC;
+float ciclo_trabajo;
+float q_temp[2];
+float q_corriente[2];
 bool leidos=false;
 // Pines
 const int pin_tempF = 32;
 const int pin_tempC = 33;
 const int pin_corriente = 34;
+int IN3 = 13;    // Input3 conectada al pin 13
+int IN4 = 14;    // Input4 conectada al pin 14
+int ENB = 12;    // ENB conectada al pin 12, PWM
 //Variables para las interrupciones
-volatile int contador1;
-volatile int contador2;
-hw_timer_t * timer1 = NULL;
-portMUX_TYPE timerMux1 = portMUX_INITIALIZER_UNLOCKED;
-hw_timer_t * timer2 = NULL;
-portMUX_TYPE timerMux2 = portMUX_INITIALIZER_UNLOCKED;
+volatile int contador;
+hw_timer_t * timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 //Funciones ISR
-void IRAM_ATTR onTimer1() { //ISR para el manejo de la interrupción de los PID's
-  portENTER_CRITICAL_ISR(&timerMux1);
-  contador1++;
-  portEXIT_CRITICAL_ISR(&timerMux1);
+void IRAM_ATTR onTimer() { //ISR para el manejo de la interrupción de los PID's
+  portENTER_CRITICAL_ISR(&timerMux);
+  contador++;
+  portEXIT_CRITICAL_ISR(&timerMux);
  
 }
-void IRAM_ATTR onTimer2() { //ISR para el manejo de la interrupción de los sensores
-  portENTER_CRITICAL_ISR(&timerMux2);
-  contador2++;
-  portEXIT_CRITICAL_ISR(&timerMux2);
- 
-}
+
 //Funcion para calcular los reguladores PID
-float PID(float u[2], float e[2], float consigna){
+float PID(float u[2], float e[2], float consigna, float q[2]){
 //Ec en diferencias del PID: u(k)=u(k−1)+q0e(k)+q1e(k-1)+q2e(k-2)   (siendo "u" la salida del lazo y "e" la entrada)
-float q0,q1,q2;
-q0=q1=q2=1;
- float e=consigna-e[2];
+ float e_0=consigna-e[2];
  float e_1=consigna-e[1];
  float e_2=consigna-e[0];
  
     // Control PID
-      float u = u[1] + q0*e + q1*e_1 + q2*e_2; //Ley del controlador PID discreto
+      float u_s = u[1] + q[0]*e_0 + q[1]*e_1 + q[2]*e_2; //Ley del controlador PID discreto
  
-     return u;
+     return u_s;
    
 }
 
@@ -75,55 +71,71 @@ float sensibilidadT= 0.01; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV e
 float sensibilidadC=0.185; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
 if(leidos==true){
 //Valor sensores de temperatura
-valor_tempF= lectura_tempF/sensibilidadT;
+entradas_temp[0]=entradas_temp[1];
+entradas_temp[1]=entradas_temp[2];
+entradas_temp[2]= lectura_tempF/sensibilidadT;
 valor_tempC= lectura_tempC/sensibilidadT;
 //Valor sensor de corriente
-valor_corriente= (lectura_corriente-2.5)/sensibilidadC; //formula desarrollada en la memoria
+entradas_corriente[0]=entradas_corriente[1];
+entradas_corriente[1]=entradas_corriente[2];
+entradas_corriente[2]= (lectura_corriente-2.5)/sensibilidadC; //formula desarrollada en la memoria
+}
+}
+void ControlPuenteH(float pwm){
+  //Si la corriente de entrada es positiva se activa una diagonal y si es negativa, la otra
+  if(entradas_corriente[2]>0){
+  digitalWrite (IN4, HIGH);
+  digitalWrite (IN3, LOW);
+  }
+  else {
+  digitalWrite (IN3, HIGH);
+  digitalWrite (IN4, LOW);
+  }
+  // Aplicamos PWM al pin ENB, modificando el ciclo de trabajo en funcion de la temperatura deseada
+  analogWrite(ENB,pwm);
 }
 
-}
 void setup() {
 Serial.begin(115200);
+//Setup pines puente H
+ pinMode (ENB, OUTPUT); 
+ pinMode (IN3, OUTPUT);
+ pinMode (IN4, OUTPUT);
+//Inicializacion de los valores de las variables y de los pines
+ciclo_trabajo=0;
+digitalWrite(IN3,LOW);
+digitalWrite(IN4,LOW);
 //Inicializacion de los temporizadores
-timer1 = timerBegin(0, 80, true); //la frecuencia base utilizada por los contadores en el ESP32 es de 80MHz
-timer2 = timerBegin(0, 80, true);
+timer = timerBegin(0, 80, true); //la frecuencia base utilizada por los contadores en el ESP32 es de 80MHz
 //Manejo de los temporizadores
-timerAttachInterrupt(timer1, &onTimer1, true);
-timerAttachInterrupt(timer2, &onTimer2, true);
+timerAttachInterrupt(timer, &onTimer, true);
 //Valor de los contadores
-timerAlarmWrite(timer1, 1000000, true); //el segundo parámetro nos indica cada cuanto se generará la interrupción, en este caso cada un segundo
-timerAlarmWrite(timer2, 1000000, true);
+timerAlarmWrite(timer, 1000000, true); //el segundo parámetro nos indica cada cuanto se generará la interrupción, en este caso cada un segundo
 //Habilitación de los contadores
-timerAlarmEnable(timer1);
-timerAlarmEnable(timer2);
-
+timerAlarmEnable(timer);
 }
 
 void loop() {
-
-  //Interrupcion de los PID's
-if (contador1>0) {
- portENTER_CRITICAL(&timerMux1);
-    contador1--;
+  //Interfaz de usuario
+  
+  //Interrupcion
+if (contador>0) {
+ portENTER_CRITICAL(&timerMux);
+    contador--;
     
-    portEXIT_CRITICAL(&timerMux1);
+    portEXIT_CRITICAL(&timerMux);
 
-    //Código para el manejo de la interrupción
-
-    salida_temp_reg= PID(salidas_temp,entradas_temp,temp_seleccionada);
-    salida_corriente_reg= PID(salidas_corriente,entradas_corriente,corriente_deseada); //falta ver como se calcula la corriente deseada
-    
-}
- //Interrupcion de los sensores
-if (contador2>0) {
- portENTER_CRITICAL(&timerMux2);
-    contador2--;
-    
-    portEXIT_CRITICAL(&timerMux2);
-
-    //Código para el manejo de la interrupción
+    //Código que se ejecuta durante la interrupción
+salidas_temp[0]=salidas_temp[1];
+salidas_temp[1]=salidas_temp[2];
+salidas_temp[2]= PID(salidas_temp,entradas_temp,temp_seleccionada,q_temp);
+salidas_corriente[0]=salidas_corriente[1];
+salidas_corriente[1]=salidas_corriente[2];
+salidas_corriente[2]= PID(salidas_corriente,entradas_corriente,corriente_deseada,q_corriente); //falta ver como se calcula la corriente deseada
 LecturaSensores();
 ValorSensores();
+ControlPuenteH(ciclo_trabajo);
     
 }
+
 }
