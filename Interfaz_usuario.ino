@@ -18,10 +18,6 @@ TFT_eSPI tft = TFT_eSPI();
 #define LABEL2_FONT &FreeSansBold12pt7b    // Key label font 2
 TFT_eSPI_Button keyN[totalButtonNumber];  // TFT_eSPI button class
 
-float temp_seleccionada;
-int start;
-float seleccion[1];
-
 //Funcion conversion de colores
 int ConvertRGBto565(byte rr, byte gg, byte bb)
 {
@@ -35,6 +31,11 @@ int ConvertRGBto565(byte rr, byte gg, byte bb)
   //Junta
   return (int)((r << 11) | (g << 5) | b);
 }
+float temp_seleccionada;
+int start;
+int defcolor = ConvertRGBto565(131, 131, 131);
+float seleccion[1];
+float salidas_temp[2];
 
 
   //Funcion control del teclado
@@ -204,7 +205,8 @@ int ConvertRGBto565(byte rr, byte gg, byte bb)
          }
          break;
 
-         case 11:
+         case 11: //boton de off
+         
          //se apaga todo
 break;
         
@@ -218,7 +220,8 @@ break;
       keyN[b].drawButton(true);  // cambia color del botón al pulsar
       delay(10); // evitar rebotes de pulsacion
     }
-  }  
+  } 
+    }  
   
 
 //Funcion para dibujar el teclado numérico 
@@ -274,14 +277,12 @@ void DibujarBotones(){
 
   // ********** General **********
   Serial.println("initialisation done...");
-
-
+  
   // ********** First print **********
-  int defcolor = ConvertRGBto565(131, 131, 131);
     DibujarBotones();
   }
   
-  void loop(){
+void loop(){
     // Función que controla las pulsaciones 
     Teclado();
     
@@ -298,19 +299,17 @@ if(start==1)
          tft.print("\337C");
 
          //funcion para que aparezca un aviso cuando la temperatura se estabilice
-
-       /*  if(tempF==temp_usuario) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
+         if(salidas_temp[2]==temp_seleccionada) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
          {
            tft.setCursor(60,120);
           tft.print("Temperatura estable, apunte los resultados");
+          delay(10000);
          start=0;
+         DibujarBotones();
           
          }
-         */
-
-          //incluir botón que permita volver atrás para introducir otra temperatura y volver a medir
 
           
     }
   }
-  }
+  
