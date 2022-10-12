@@ -52,8 +52,8 @@ float sensibilidadT= 0.01; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV e
 float sensibilidadC=0.185; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
 float valor_tempC;
 float ciclo_trabajo; //error de la corriente que pasamos a través de la salida PWM
-float q_temp[2];
-float q_corriente[2];
+float q_temp[]= {9.12*pow(10,-26),1.87*pow(10,-27),8.93*pow(10,-26)}; //constantes PID temperatura
+float q_corriente[]= {1.42,0.945,0.157}; //constantes PID corriente
 bool leidos=false;
 // Pines
 const int pin_tempF = 32;
