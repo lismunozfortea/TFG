@@ -1,315 +1,287 @@
-// ***** LIBRERIAS *****
+/*
+  The TFT_eSPI library incorporates an Adafruit_GFX compatible
+  button handling class, this sketch is based on the Arduin-o-phone
+  example.
+  This example diplays a keypad where numbers can be entered and
+  send to the Serial Monitor window.
+  The sketch has been tested on the ESP8266 (which supports SPIFFS)
+  The minimum screen size is 320 x 240 as that is the keypad size.
+  TOUCH_CS and SPI_TOUCH_FREQUENCY must be defined in the User_Setup.h file
+  for the touch functions to do anything.
+*/
+
+// The SPIFFS (FLASH filing system) is used to hold touch screen
+// calibration data
+
+#include "FS.h"
+
 #include <SPI.h>
-#include <FS.h>
+#include <TFT_eSPI.h>      // Hardware-specific library
 
-// ********** TFT_eSPI screen **********
-#define TFT_CS 15  //TFT CS to PIN 15
-#include <TFT_eSPI.h>
-TFT_eSPI tft = TFT_eSPI();
+TFT_eSPI tft = TFT_eSPI(); // Invoke custom library
 
-// ********** TFT_eSPI touch **********
-//#define TOUCH_CS 21  //Touch CS to PIN 21
-#define CALIBRATION_FILE "/TouchCalData2" // Calibration file stored in SPIFFS
-#define REPEAT_CAL false // if true calibration is requested after reboot
-#define totalButtonNumber 20
+// This is the file name used to store the calibration data
+// You can change this to create new calibration files.
+// The SPIFFS file name must start with "/".
+#define CALIBRATION_FILE "/TouchCalData2"
 
+// Set REPEAT_CAL to true instead of false to run calibration
+// again, otherwise it will only be done once.
+// Repeat calibration if you change the screen rotation.
+#define REPEAT_CAL false
 
+// Keypad start position, key sizes and spacing
+#define KEY_X 40 // Centre of key
+#define KEY_Y 96
+#define KEY_W 62 // Width and height
+#define KEY_H 30
+#define KEY_SPACING_X 18 // X and Y gap
+#define KEY_SPACING_Y 20
+#define KEY_TEXTSIZE 1   // Font size multiplier
+
+// Using two fonts since numbers are nice when bold
 #define LABEL1_FONT &FreeSansOblique12pt7b // Key label font 1
 #define LABEL2_FONT &FreeSansBold12pt7b    // Key label font 2
-TFT_eSPI_Button keyN[totalButtonNumber];  // TFT_eSPI button class
 
-//Funcion conversion de colores
-int ConvertRGBto565(byte rr, byte gg, byte bb)
-{
-  //reduz para 5 bits significativos
-  byte r = (byte) (rr >> 3);
-  //reduz para 6 bits significativos
-  byte g = (byte)(gg >> 2);
-  //reduz para 5 bits significativos
-  byte b = (byte)(bb >> 3);
+// Numeric display box size and location
+#define DISP_X 1
+#define DISP_Y 10
+#define DISP_W 238
+#define DISP_H 50
+#define DISP_TSIZE 3
+#define DISP_TCOLOR TFT_CYAN
 
-  //Junta
-  return (int)((r << 11) | (g << 5) | b);
+// Number length, buffer for storing it and character index
+#define NUM_LEN 12
+char numberBuffer[NUM_LEN + 1] = "";
+uint8_t numberIndex = 0;
+
+// We have a status line for messages
+#define STATUS_X 120 // Centred on this
+#define STATUS_Y 65
+
+// Create 15 keys for the keypad
+char keyLabel[15][5] = {"New", "Del", "Start", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "#" };
+uint16_t keyColor[15] = {TFT_RED, TFT_DARKGREY, TFT_DARKGREEN,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE
+                        };
+
+// Invoke the TFT_eSPI button class and create all the button objects
+TFT_eSPI_Button key[15];
+
+//------------------------------------------------------------------------------------------
+
+void setup() {
+  // Use serial port
+  Serial.begin(115200);
+
+  // Initialise the TFT screen
+  tft.init();
+
+  // Set the rotation before we calibrate
+  tft.setRotation(3);
+
+  // Calibrate the touch screen and retrieve the scaling factors
+  //touch_calibrate();
+  uint16_t calData[5] = {299, 3588, 348, 3474, 1};
+  tft.setTouch(calData);
+
+  // Clear the screen
+  tft.fillScreen(TFT_BLACK);
+
+  // Draw keypad background
+  tft.fillRect(0, 0, 240, 320, TFT_DARKGREY);
+
+  // Draw number display area and frame
+  tft.fillRect(DISP_X, DISP_Y, DISP_W, DISP_H, TFT_BLACK);
+  tft.drawRect(DISP_X, DISP_Y, DISP_W, DISP_H, TFT_WHITE);
+
+  // Draw keypad
+  drawKeypad();
 }
-float temp_seleccionada;
-int start;
-int defcolor = ConvertRGBto565(131, 131, 131);
-float seleccion[1];
-float salidas_temp[2];
 
+//------------------------------------------------------------------------------------------
 
-  //Funcion control del teclado
- void Teclado()
-  {
-      uint16_t t_x = 0, t_y = 0; // coordenadas pulsacion
-      bool pressed = tft.getTouch(&t_x, &t_y);  // true al pulsar
+void loop(void) {
+  uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
 
-  // Comprueba si pulsas en zona de botón
-  for (uint8_t b = 0; b < totalButtonNumber; b++) {
-    if (pressed && keyN[b].contains(t_x, t_y)) {
-      keyN[b].press(true);
-      Serial.print(t_x);
-      Serial.print(",");
-      Serial.println(t_y);
+  // Pressed will be set true is there is a valid touch on the screen
+  boolean pressed = tft.getTouch(&t_x, &t_y);
+
+  // / Check if any key coordinate boxes contain the touch coordinates
+  for (uint8_t b = 0; b < 15; b++) {
+    if (pressed && key[b].contains(t_x, t_y)) {
+      key[b].press(true);  // tell the button it is pressed
     } else {
-      keyN[b].press(false);
+      key[b].press(false);  // tell the button it is NOT pressed
     }
   }
 
-  // Accion si se pulsa boton
-  for (uint8_t b = 0; b < totalButtonNumber; b++) {
+  // Check if any key has changed state
+  for (uint8_t b = 0; b < 15; b++) {
 
-    if (keyN[b].justReleased()) {
-    keyN[b].drawButton(); // redibuja al soltar
+    if (b < 3) tft.setFreeFont(LABEL1_FONT);
+    else tft.setFreeFont(LABEL2_FONT);
 
-      switch (b) {
-        case 0: 
-//Gestión de las pulsaciones del teclado numérico
-        if(seleccion[0]!=0)
-        {
-          tft.setCursor(60,30);
-          tft.print("0");
-          seleccion[0]=0; }
-          else
-         { tft.setCursor(70,30);
-          tft.print("0");
-          seleccion[1]=0;
-          }        
-          break;
-          
-        case 1:
-       
-          if(seleccion[0]!=1)
-        {
-          tft.setCursor(60,30);
-          tft.print("1");
-          seleccion[0]=1;
-            } 
-          else
-         { tft.setCursor(70,30);
-          tft.print("1");
-          seleccion[1]=1;
-          }
-          break;
-          
-           case 2: 
-             if(seleccion[0]!=2)
-        {
-          tft.setCursor(60,30);
-          tft.print("2");
-          seleccion[0]=2;   } 
-          else
-         { tft.setCursor(70,30);
-          tft.print("2");
-          seleccion[1]=2;
-          }
-         break;
+    if (key[b].justReleased()) key[b].drawButton();     // draw normal
 
-         case 3: 
-          if(seleccion[0]!=3)
-        {
-          tft.setCursor(60,30);
-          tft.print("3");
-          seleccion[0]=3;  } 
-          else
-          {tft.setCursor(70,30);
-          tft.print("3");
-          seleccion[1]=3;
-          }
-         break;
-         
-         case 4:
-       
-          if(seleccion[0]!=4)
-        {
-          tft.setCursor(60,30);
-          tft.print("4");
-          seleccion[0]=4;   } 
-          else
-        {  tft.setCursor(70,30);
-          tft.print("4");
-          seleccion[1]=4;
-          }
-          break;
-          
-           case 5: 
-         if(seleccion[0]!=5)
-        {
-          tft.setCursor(60,30);
-          tft.print("5");
-          seleccion[0]=5;   } 
-          else
-        {  tft.setCursor(70,30);
-          tft.print("5");
-          seleccion[1]=5;
-          }
-         break;
+    if (key[b].justPressed()) {
+      key[b].drawButton(true);  // draw invert
 
-         case 6: 
-          if(seleccion[0]!=6)
-        {
-          tft.setCursor(60,30);
-          tft.print("6");
-          seleccion[0]=6;  } 
-          else
-          {tft.setCursor(70,30);
-          tft.print("6");
-          seleccion[1]=6;
-          }
-         break;
-         
-         case 7:
-         if(seleccion[0]!=7)
-        {
-          tft.setCursor(60,30);
-          tft.print("7");
-          seleccion[0]=7;  } 
-          else
-         { tft.setCursor(70,30);
-          tft.print("7");
-          seleccion[1]=7;
-          }
-          break;
-          
-           case 8: 
-          if(seleccion[0]!=8)
-        {
-          tft.setCursor(60,30);
-          tft.print("8");
-          seleccion[0]=8;  } 
-          else
-         { tft.setCursor(70,30);
-          tft.print("8");
-          seleccion[1]=8;
-          }
-         break;
+      // if a numberpad button, append the relevant # to the numberBuffer
+      if (b >= 3) {
+        if (numberIndex < NUM_LEN) {
+          numberBuffer[numberIndex] = keyLabel[b][0];
+          numberIndex++;
+          numberBuffer[numberIndex] = 0; // zero terminate
+        }
+        //status(""); // Clear the old status
+      }
 
-         case 9: 
-       if(seleccion[0]!=9)
-        {
-          tft.setCursor(60,30);
-          tft.print("9");
-          seleccion[0]=9;  } 
-          else
-         { tft.setCursor(70,30);
-          tft.print("9");
-          seleccion[1]=9;
-          }
-         break;
+      // Del button, so delete last char
+      if (b == 1) {
+        numberBuffer[numberIndex] = 0;
+        if (numberIndex > 0) {
+          numberIndex--;
+          numberBuffer[numberIndex] = 0;//' ';
+        }
+        //status(""); // Clear the old status
+      }
+//start
+      if (b == 2) {
+        status("Temperatura enviada, espere");
+       // Serial.println(numberBuffer);
+       temp_seleccionada= numberBuffer;
+       start=1;
+      }
+      // we dont really check that the text field makes sense
+      // just try to call
+      //New
+      if (b == 0) {
+        status("Introduzca temperatura");
+        numberIndex = 0; // Reset index to 0
+        numberBuffer[numberIndex] = 0; // Place null in buffer
+      }
 
-          case 10: //botón de start
-         { // se convierte el vector en un float
-        //temp_seleccionada= atof(seleccion); 
-        temp_seleccionada= seleccion[0]*10 + seleccion[1];
-      start=1;
-         }
-         break;
+      // Update the number display field
+      tft.setTextDatum(TL_DATUM);        // Use top left corner as text coord datum
+      tft.setFreeFont(&FreeSans18pt7b);  // Choose a nicefont that fits box
+      tft.setTextColor(DISP_TCOLOR);     // Set the font colour
 
-         case 11: //boton de off
-         
-         //se apaga todo
-break;
-        
-        default:
-          delay(1);
-          
+      // Draw the string, the value returned is the width in pixels
+      int xwidth = tft.drawString(numberBuffer, DISP_X + 4, DISP_Y + 12);
+
+      // Now cover up the rest of the line up by drawing a black rectangle.  No flicker this way
+      // but it will not work with italic or oblique fonts due to character overlap.
+      tft.fillRect(DISP_X + 4 + xwidth, DISP_Y + 1, DISP_W - xwidth - 5, DISP_H - 2, TFT_BLACK);
+
+      delay(10); // UI debouncing
+    }
+  }
+}
+
+//------------------------------------------------------------------------------------------
+
+void drawKeypad()
+{
+  // Draw the keys
+  for (uint8_t row = 0; row < 5; row++) {
+    for (uint8_t col = 0; col < 3; col++) {
+      uint8_t b = col + row * 3;
+
+      if (b < 3) tft.setFreeFont(LABEL1_FONT);
+      else tft.setFreeFont(LABEL2_FONT);
+
+      key[b].initButton(&tft, KEY_X + col * (KEY_W + KEY_SPACING_X),
+                        KEY_Y + row * (KEY_H + KEY_SPACING_Y), // x, y, w, h, outline, fill, text
+                        KEY_W, KEY_H, TFT_WHITE, keyColor[b], TFT_WHITE,
+                        keyLabel[b], KEY_TEXTSIZE);
+      key[b].drawButton();
+    }
+  }
+}
+
+//------------------------------------------------------------------------------------------
+
+void touch_calibrate()
+{
+  uint16_t calData[5];
+  uint8_t calDataOK = 0;
+
+  // check file system exists
+  if (!SPIFFS.begin()) {
+    Serial.println("Formating file system");
+    SPIFFS.format();
+    SPIFFS.begin();
+  }
+
+  // check if calibration file exists and size is correct
+  if (SPIFFS.exists(CALIBRATION_FILE)) {
+    if (REPEAT_CAL)
+    {
+      // Delete if we want to re-calibrate
+      SPIFFS.remove(CALIBRATION_FILE);
+    }
+    else
+    {
+      File f = SPIFFS.open(CALIBRATION_FILE, "r");
+      if (f) {
+        if (f.readBytes((char *)calData, 14) == 14)
+          calDataOK = 1;
+        f.close();
       }
     }
-         
-    if (keyN[b].justPressed()) {
-      keyN[b].drawButton(true);  // cambia color del botón al pulsar
-      delay(10); // evitar rebotes de pulsacion
+  }
+
+  if (calDataOK && !REPEAT_CAL) {
+    // calibration data valid
+    tft.setTouch(calData);
+  } else {
+    // data not valid so recalibrate
+    tft.fillScreen(TFT_BLACK);
+    tft.setCursor(20, 0);
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
+    tft.println("Touch corners as indicated");
+
+    tft.setTextFont(1);
+    tft.println();
+
+    if (REPEAT_CAL) {
+      tft.setTextColor(TFT_RED, TFT_BLACK);
+      tft.println("Set REPEAT_CAL to false to stop this running again!");
     }
-  } 
-    }  
-  
 
-//Funcion para dibujar el teclado numérico 
-void DibujarBotones(){
-  int defcolor = ConvertRGBto565(131, 131, 131);
-  tft.setRotation(1);
-  tft.fillScreen(defcolor);
-  tft.setTextColor(ILI9341_BLACK);
-  tft.setCursor(60,20);
-  tft.print("Introduzca la temperatura:");
-  // Draw the keys
-  tft.setFreeFont(LABEL1_FONT);
- 
-  keyN[0].initButton(&tft, 40, 40, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "0" , 1 ); // x, y, w, h, outline, fill, color, label, text_Size
-  keyN[0].drawButton();
-  keyN[1].initButton(&tft, 80, 40, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "1" , 1 );
-  keyN[1].drawButton();
-  keyN[2].initButton(&tft, 120, 40, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "2" , 1 ); // x, y, w, h, outline, fill, color, label, text_Size
-  keyN[2].drawButton();
-  keyN[3].initButton(&tft, 160, 80, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "3" , 1 );
-  keyN[3].drawButton();
-  keyN[4].initButton(&tft,40, 80, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "4" , 1 ); // x, y, w, h, outline, fill, color, label, text_Size
-  keyN[4].drawButton();
-  keyN[5].initButton(&tft, 80, 80, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "5" , 1 );
-  keyN[5].drawButton();
-  keyN[6].initButton(&tft, 120, 80, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "6" , 1 ); // x, y, w, h, outline, fill, color, label, text_Size
-  keyN[6].drawButton();
-  keyN[7].initButton(&tft, 160, 120, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "7" , 1 );
-  keyN[7].drawButton();
-  keyN[8].initButton(&tft, 180, 120, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "8" , 1 );
-  keyN[8].drawButton();
-  keyN[9].initButton(&tft, 40, 120, 40, 40, TFT_BLACK, TFT_WHITE, TFT_BLUE, "9" , 1 );
-  keyN[9].drawButton();
-  keyN[10].initButton(&tft, 20, 180, 60, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Start" , 1 );
-  keyN[10].drawButton();
-  keyN[11].initButton(&tft, 20, 180, 60, 60, TFT_BLACK, TFT_WHITE, TFT_BLUE, "Off" , 1 );
-  keyN[11].drawButton();
+    tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 15);
 
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.println("Calibration complete!");
+
+    // store data
+    File f = SPIFFS.open(CALIBRATION_FILE, "w");
+    if (f) {
+      f.write((const unsigned char *)calData, 14);
+      f.close();
+    }
+  }
 }
-  void setup(){
-    
-  digitalWrite(TOUCH_CS, HIGH); // ********** TFT_eSPI touch **********
-  digitalWrite(TFT_CS, HIGH); // ********** TFT_eSPI screen library **********
-    Serial.begin(115200);
-    delay(2000);
-    
-     
-  tft.begin();
-  tft.invertDisplay(false); // I don't know why but it is required for my TFT to color correction
-  tft.setRotation(1);  // Landscape
-  //touch_calibrate();  // Calibrate the touch screen and retrieve the scaling factors recorded in SD/SPIFFS
 
+//------------------------------------------------------------------------------------------
 
-  // ********** General **********
-  Serial.println("initialisation done...");
-  
-  // ********** First print **********
-    DibujarBotones();
-  }
-  
-void loop(){
-    // Función que controla las pulsaciones 
-    Teclado();
-    
-//****MODO TEMP.UNICA ******
-if(start==1)
-{
- 
-        tft.fillScreen(defcolor);
-         tft.setTextColor(ILI9341_BLACK);
-          tft.setCursor(60,30);
-          tft.print("Temperatura:");
-        tft.setCursor(60,100);
-        tft.print(salidas_temp[2]);
-         tft.print("\337C");
+// Print something in the mini status bar
+void status(const char *msg) {
+  tft.setTextPadding(240);
+  //tft.setCursor(STATUS_X, STATUS_Y);
+  tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+  tft.setTextFont(0);
+  tft.setTextDatum(TC_DATUM);
+  tft.setTextSize(1);
+  tft.drawString(msg, STATUS_X, STATUS_Y);
+}
 
-         //funcion para que aparezca un aviso cuando la temperatura se estabilice
-         if(salidas_temp[2]==temp_seleccionada) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
-         {
-           tft.setCursor(60,120);
-          tft.print("Temperatura estable, apunte los resultados");
-          delay(10000);
-         start=0;
-         DibujarBotones();
-          
-         }
-
-          
-    }
-  }
-  
+//------------------------------------------------------------------------------------------
