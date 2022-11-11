@@ -1,3 +1,4 @@
+#include <analogWrite.h>
 /*
   The TFT_eSPI library incorporates an Adafruit_GFX compatible
   button handling class, this sketch is based on the Arduin-o-phone
@@ -60,8 +61,12 @@ uint8_t numberIndex = 0;
 #define STATUS_X 120 // Centred on this
 #define STATUS_Y 65
 
+// Cuadro donde aparece la temperatura lado frio
+#define TEMP_X 250 // Centred on this
+#define TEMP_Y 65
+
 // Create 15 keys for the keypad
-char keyLabel[15][5] = {"New", "Del", "Start", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "#" };
+char keyLabel[15][5] = {"New", "Del", "Star", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "#" };
 uint16_t keyColor[15] = {TFT_RED, TFT_DARKGREY, TFT_DARKGREEN,
                          TFT_BLUE, TFT_BLUE, TFT_BLUE,
                          TFT_BLUE, TFT_BLUE, TFT_BLUE,
@@ -71,7 +76,8 @@ uint16_t keyColor[15] = {TFT_RED, TFT_DARKGREY, TFT_DARKGREEN,
 
 // Invoke the TFT_eSPI button class and create all the button objects
 TFT_eSPI_Button key[15];
-
+float temp_seleccionada;
+float entradas_temp[2];
 //------------------------------------------------------------------------------------------
 
 void setup() {
@@ -138,7 +144,7 @@ void loop(void) {
           numberIndex++;
           numberBuffer[numberIndex] = 0; // zero terminate
         }
-        //status(""); // Clear the old status
+        status("Introduzca temperatura"); // Clear the old status
       }
 
       // Del button, so delete last char
@@ -148,14 +154,23 @@ void loop(void) {
           numberIndex--;
           numberBuffer[numberIndex] = 0;//' ';
         }
-        //status(""); // Clear the old status
+        status("Introduzca temperatura"); // Clear the old status
       }
 //start
       if (b == 2) {
         status("Temperatura enviada, espere");
-       // Serial.println(numberBuffer);
-       temp_seleccionada= numberBuffer;
-       start=1;
+        
+       Serial.println(numberBuffer);
+       temp_seleccionada= atof(numberBuffer);
+       PrintTemp();
+
+         //funcion para que aparezca un aviso cuando la temperatura se estabilice
+         if(entradas_temp[2]==temp_seleccionada) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
+         {
+          status("Temperatura estable, apunte los resultados");
+          delay(10000);
+                 }       
+     
       }
       // we dont really check that the text field makes sense
       // just try to call
@@ -282,6 +297,14 @@ void status(const char *msg) {
   tft.setTextDatum(TC_DATUM);
   tft.setTextSize(1);
   tft.drawString(msg, STATUS_X, STATUS_Y);
+}
+
+// Print temp
+void PrintTemp() {
+  tft.setCursor(TEMP_X,TEMP_Y);
+  tft.print("Temperatura:");
+  tft.setCursor(TEMP_X,(TEMP_Y+10));
+  tft.print(entradas_temp[2]);
 }
 
 //------------------------------------------------------------------------------------------
