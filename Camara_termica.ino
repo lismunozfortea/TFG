@@ -13,7 +13,7 @@ float corriente_deseada; //corriente de consigna para el regulador PID de corrie
 float lectura_tempC; //entre 0 y 4095
 float lectura_tempF;
 float lectura_corriente;
-float sensibilidadT= 0.01; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV en el sensor de temperatura LM335Z (dada por el fabricante)
+float sensibilidadT= 0.1; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV en el sensor de temperatura LM335Z (dada por el fabricante)
 float sensibilidadC=0.185; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
 float valor_tempC;
 float ciclo_trabajo; //error de la corriente que pasamos a través de la salida PWM
@@ -21,12 +21,12 @@ float q_temp[]= {9.12*pow(10,-26),1.87*pow(10,-27),8.93*pow(10,-26)}; //constant
 float q_corriente[]= {1.42,0.945,0.157}; //constantes PID corriente
 bool leidos=false;
 // Pines //
-const int pin_tempF = 32;
-const int pin_tempC = 33;
-const int pin_corriente = 34;
-int IN3 = 13;    // Input3 conectada al pin 13
-int IN4 = 14;    // Input4 conectada al pin 14
-int ENB = 12;    // ENB conectada al pin 12, PWM
+#define pin_tempF 32
+#define pin_tempC 33
+#define pin_corriente 34
+#define IN3 13    // Input3 conectada al pin 13
+#define IN4 14   // Input4 conectada al pin 14
+#define ENB 12   // ENB conectada al pin 12, PWM
 //Variables para las interrupciones //
 volatile int contador;
 hw_timer_t * timer = NULL;
@@ -42,6 +42,7 @@ void IRAM_ATTR onTimer() { //ISR para el manejo de la interrupción de los PID's
 }
 
 void setup() {
+  
    //*********SETUP GENERAL********//
 Serial.begin(115200);
   //Setup pines puente H 
@@ -65,6 +66,12 @@ timerAlarmEnable(timer);
 //------------------------------------------------------------------------------------------
 
 void loop(void) {
+  //Comprobacion lectura de sensores
+  Serial.print("TempFria:");
+Serial.print(entradas_temp[2]);
+
+Serial.print("Corriente:");
+Serial.print(entradas_corriente[2]);
    //*********MANEJO DE INTERRUPCIONES********//
 if (contador>0) {
  portENTER_CRITICAL(&timerMux);
@@ -80,9 +87,7 @@ salidas_corriente[0]=salidas_corriente[1];
 salidas_corriente[1]=salidas_corriente[2];
 salidas_corriente[2]= PID(salidas_corriente,entradas_corriente,corriente_deseada,q_corriente); 
 LecturaSensores();
-//delay(1000);
 ValorSensores();
-//delay(1000);
 ciclo_trabajo=entradas_corriente[2]-corriente_deseada; //le pasamos el error de la corriente como ciclo de trabajo 
 ControlPuenteH(ciclo_trabajo);
     
@@ -106,9 +111,9 @@ float PID(float u[2], float e[2], float consigna, float q[2]){
 
 //Funciones para la lectura/escritura de los valores de los sensores //
 void LecturaSensores(){ //lee de los pines ADC el valor de los sensores, estos pines tienen resolución de 12 bits, leen de 0 a 4095 donde 0 es 0V y 4095 3.3V
-lectura_tempF= analogRead(pin_tempF)* (3.3 / 4095.0);
-lectura_tempC= analogRead(pin_tempC)* (3.3 / 4095.0);
-lectura_corriente= analogRead(pin_corriente)* (3.3 / 4095.0);
+lectura_tempF= analogRead(pin_tempF)* (3.3 / 4096.0);
+lectura_tempC= analogRead(pin_tempC)* (3.3 / 4096.0);
+lectura_corriente= analogRead(pin_corriente)* (3.3 / 4096.0);
 //activamos la variable auxiliar "leidos" para avisar a la otra funcion de que ya puede escribirlos
 leidos=true;
   }
