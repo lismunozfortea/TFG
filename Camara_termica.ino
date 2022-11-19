@@ -26,7 +26,7 @@ bool leidos=false;
 #define pin_corriente 34
 #define IN3 13    // Input3 conectada al pin 13
 #define IN4 14   // Input4 conectada al pin 14
-#define ENB 12   // ENB conectada al pin 12, PWM
+#define ENB 15   // ENB conectada al pin 12, PWM
 //Variables para las interrupciones //
 volatile int contador;
 hw_timer_t * timer = NULL;
@@ -72,6 +72,8 @@ Serial.print(entradas_temp[2]);
 
 Serial.print("Corriente:");
 Serial.print(entradas_corriente[2]);
+  digitalWrite (IN4, HIGH);
+  digitalWrite (IN3, LOW);
    //*********MANEJO DE INTERRUPCIONES********//
 if (contador>0) {
  portENTER_CRITICAL(&timerMux);
@@ -123,8 +125,8 @@ if(leidos==true){
 //Valor sensores de temperatura 
 entradas_temp[0]=entradas_temp[1];
 entradas_temp[1]=entradas_temp[2];
-entradas_temp[2]= lectura_tempF/sensibilidadT;
-valor_tempC= lectura_tempC/sensibilidadT;
+entradas_temp[2]= (lectura_tempF/sensibilidadT)-4; //Dividimos entre la sensibilidad y ajustamos al 0
+valor_tempC= (lectura_tempC/sensibilidadT)-4;
 //Valor sensor de corriente
 entradas_corriente[0]=entradas_corriente[1];
 entradas_corriente[1]=entradas_corriente[2];
