@@ -91,20 +91,20 @@ float corriente_deseada; //corriente de consigna para el regulador PID de corrie
 float lectura_tempC; //entre 0 y 4095
 float lectura_tempF;
 float lectura_corriente;
-float sensibilidadT= 0.01; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV en el sensor de temperatura LM335Z (dada por el fabricante)
-float sensibilidadC=0.185; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
+float sensibilidadT= 0.1; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV en el sensor de temperatura LM335Z (dada por el fabricante)
+float sensibilidadC=1.85; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
 float valor_tempC;
 float ciclo_trabajo; //error de la corriente que pasamos a través de la salida PWM
 float q_temp[]= {9.12*pow(10,-26),1.87*pow(10,-27),8.93*pow(10,-26)}; //constantes PID temperatura
 float q_corriente[]= {1.42,0.945,0.157}; //constantes PID corriente
 bool leidos=false;
 // Pines //
-const int pin_tempF = 32;
-const int pin_tempC = 33;
-const int pin_corriente = 34;
-int IN3 = 13;    // Input3 conectada al pin 13
-int IN4 = 14;    // Input4 conectada al pin 14
-int ENB = 12;    // ENB conectada al pin 12, PWM
+#define  pin_tempF 32
+#define  pin_tempC 33
+#define  pin_corriente 34
+#define  IN1 13  // Input1 conectada al pin 13
+#define  IN2 14    // Input2 conectada al pin 14
+#define ENA 15    // ENA conectada al pin 15, PWM
 //Variables para las interrupciones //
 volatile int contador;
 hw_timer_t * timer = NULL;
@@ -146,16 +146,18 @@ void setup() {
 
   // Draw keypad
   drawKeypad();
+  //Status inicial
+  status("Introduzca temperatura"); 
    //*********SETUP GENERAL********//
 
   //Setup pines puente H 
- pinMode (ENB, OUTPUT); 
- pinMode (IN3, OUTPUT);
- pinMode (IN4, OUTPUT);
+ pinMode (ENA, OUTPUT); 
+ pinMode (IN1, OUTPUT);
+ pinMode (IN2, OUTPUT);
 //Inicializacion de los valores de las variables y de los pines
 ciclo_trabajo=0; //Inicialmente apagada
-digitalWrite(IN3,LOW);
-digitalWrite(IN4,LOW);
+digitalWrite(IN1,LOW);
+digitalWrite(IN2,LOW);
 //Inicializacion de los temporizadores
 timer = timerBegin(0, 80, true); //la frecuencia base utilizada por los contadores en el ESP32 es de 80MHz
 //Manejo de los temporizadores
@@ -169,6 +171,13 @@ timerAlarmEnable(timer);
 //------------------------------------------------------------------------------------------
 
 void loop(void) {
+  //Comprobacion lectura de sensores
+  Serial.print("TempFria:");
+Serial.print(entradas_temp[2]);
+
+Serial.print("Corriente:");
+Serial.print(entradas_corriente[2]);
+//-------------------------------------------------
 
   uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
 
@@ -220,7 +229,7 @@ void loop(void) {
         status("Temperatura enviada, espere");
         Serial.println(numberBuffer);
        temp_seleccionada= atof(numberBuffer);
-        PrintTemp();
+
 
          //funcion para que aparezca un aviso cuando la temperatura se estabilice
          if(entradas_temp[2]==temp_seleccionada) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
@@ -266,12 +275,11 @@ salidas_corriente[0]=salidas_corriente[1];
 salidas_corriente[1]=salidas_corriente[2];
 salidas_corriente[2]= PID(salidas_corriente,entradas_corriente,corriente_deseada,q_corriente); 
 LecturaSensores();
-//delay(1000);
 ValorSensores();
-//delay(1000);
 ciclo_trabajo=entradas_corriente[2]-corriente_deseada; //le pasamos el error de la corriente como ciclo de trabajo 
 ControlPuenteH(ciclo_trabajo);
-
+//Visualizacion temperatura
+ PrintTemp();
 
 }
   }
@@ -380,12 +388,18 @@ void status(const char *msg) {
 }
 // Print temp
 void PrintTemp() {
-  //tft.setTextColor(ILI9341_WHITE);
-  //tft.setTextSize(1);
   tft.setCursor(TEMP_X,TEMP_Y);
   tft.print("Temperatura:");
   tft.setCursor(TEMP_X,(TEMP_Y+10));
   tft.print(entradas_temp[2]);
+  /*tft.setCursor(TEMP_X, TEMP_Y);//Posición del texto en la pantalla
+  tft.setTextColor(ILI9341_GREEN);//Setea el color del texto en verde
+  tft.setTextSize(1);//Seteo del tamaño del texto
+  tft.println("Temperatura:");// Se imprime en patalla la "Temperatura:"
+   tft.setCursor(TEMP_X, (TEMP_Y+10));//Posición del texto en la pantalla
+  tft.setTextColor(ILI9341_WHITE);//Setea el color del texto en blanco
+  tft.print(entradas_temp[2]);//Muestra la temperatura obtenida del sensor
+  tft.println("C");//Imprime "C"*/
 }
 
 //------------------------------------------------------------------------------------------
@@ -407,12 +421,9 @@ float PID(float u[2], float e[2], float consigna, float q[2]){
 
 //Funciones para la lectura/escritura de los valores de los sensores //
 void LecturaSensores(){ //lee de los pines ADC el valor de los sensores, estos pines tienen resolución de 12 bits, leen de 0 a 4095 donde 0 es 0V y 4095 3.3V
-lectura_tempF= analogRead(pin_tempF)* (3.3 / 4095.0);
-//delay(1000);
-lectura_tempC= analogRead(pin_tempC)* (3.3 / 4095.0);
-//delay(1000);
-lectura_corriente= analogRead(pin_corriente)* (3.3 / 4095.0);
-//delay(1000);
+lectura_tempF= analogRead(pin_tempF)* (3.3 / 4096.0);
+lectura_tempC= analogRead(pin_tempC)* (3.3 / 4096.0);
+lectura_corriente= analogRead(pin_corriente)* (3.3 / 4096.0);
 //activamos la variable auxiliar "leidos" para avisar a la otra funcion de que ya puede escribirlos
 leidos=true;
   }
@@ -422,8 +433,8 @@ if(leidos==true){
 //Valor sensores de temperatura 
 entradas_temp[0]=entradas_temp[1];
 entradas_temp[1]=entradas_temp[2];
-entradas_temp[2]= lectura_tempF/sensibilidadT;
-valor_tempC= lectura_tempC/sensibilidadT;
+entradas_temp[2]= (lectura_tempF/sensibilidadT)-4;
+valor_tempC= (lectura_tempC/sensibilidadT)-4;
 //Valor sensor de corriente
 entradas_corriente[0]=entradas_corriente[1];
 entradas_corriente[1]=entradas_corriente[2];
@@ -435,16 +446,16 @@ leidos=false;
 void ControlPuenteH(float pwm){
   //Si la corriente de entrada es positiva se activa una diagonal y si es negativa, la otra
   if(pwm>0){
-  digitalWrite (IN4, HIGH);
-  digitalWrite (IN3, LOW);
+  digitalWrite (IN2, LOW);
+  digitalWrite (IN1, HIGH);
   }
   else {
-  digitalWrite (IN3, HIGH);
-  digitalWrite (IN4, LOW);
+  digitalWrite (IN1, LOW);
+  digitalWrite (IN2, HIGH);
   }
   //Lo ideal sería en funcion de la señal de error (ciclo de trabajo) saber cuanto variar el ancho de PWM
 
-  pwm=(pwm*sensibilidadC) + 2.5; //pasamos de valor de corriente a digital
+  pwm=abs(pwm*sensibilidadC + 2.5); //pasamos de valor de corriente a analogico para pasarlo al PWM
   // Aplicamos PWM al pin ENB, modificando el ciclo de trabajo en funcion de la temperatura deseada
-  analogWrite(ENB,pwm);
+  analogWrite(ENA,pwm);
 }
