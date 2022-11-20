@@ -14,7 +14,7 @@ float lectura_tempC; //entre 0 y 4095
 float lectura_tempF;
 float lectura_corriente;
 float sensibilidadT= 0.1; //sensibilidad en voltios/ºC, 1ºC equivale a 10mV en el sensor de temperatura LM335Z (dada por el fabricante)
-float sensibilidadC=0.185; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
+float sensibilidadC=1.85; //sensibilidad en Voltios/Amperio para sensor de corriente ACS712 de 5A (dada por el fabricante)
 float valor_tempC;
 float ciclo_trabajo; //error de la corriente que pasamos a través de la salida PWM
 float q_temp[]= {9.12*pow(10,-26),1.87*pow(10,-27),8.93*pow(10,-26)}; //constantes PID temperatura
@@ -24,9 +24,9 @@ bool leidos=false;
 #define pin_tempF 32
 #define pin_tempC 33
 #define pin_corriente 34
-#define IN3 13    // Input3 conectada al pin 13
-#define IN4 14   // Input4 conectada al pin 14
-#define ENB 15   // ENB conectada al pin 12, PWM
+#define IN1 13    // Input1 conectada al pin 13
+#define IN2 14   // Input2 conectada al pin 14
+#define ENA 15   // ENA conectada al pin 15, PWM
 //Variables para las interrupciones //
 volatile int contador;
 hw_timer_t * timer = NULL;
@@ -46,13 +46,13 @@ void setup() {
    //*********SETUP GENERAL********//
 Serial.begin(115200);
   //Setup pines puente H 
- pinMode (ENB, OUTPUT); 
- pinMode (IN3, OUTPUT);
- pinMode (IN4, OUTPUT);
+ pinMode (ENA, OUTPUT); 
+ pinMode (IN1, OUTPUT);
+ pinMode (IN2, OUTPUT);
 //Inicializacion de los valores de las variables y de los pines
 ciclo_trabajo=0; //Inicialmente apagada
-digitalWrite(IN3,LOW);
-digitalWrite(IN4,LOW);
+digitalWrite(IN1,LOW);
+digitalWrite(IN2,LOW);
 //Inicializacion de los temporizadores
 timer = timerBegin(0, 80, true); //la frecuencia base utilizada por los contadores en el ESP32 es de 80MHz
 //Manejo de los temporizadores
@@ -72,8 +72,6 @@ Serial.print(entradas_temp[2]);
 
 Serial.print("Corriente:");
 Serial.print(entradas_corriente[2]);
-  digitalWrite (IN4, HIGH);
-  digitalWrite (IN3, LOW);
    //*********MANEJO DE INTERRUPCIONES********//
 if (contador>0) {
  portENTER_CRITICAL(&timerMux);
@@ -138,16 +136,16 @@ leidos=false;
 void ControlPuenteH(float pwm){
   //Si la corriente de entrada es positiva se activa una diagonal y si es negativa, la otra
   if(pwm>0){
-  digitalWrite (IN4, HIGH);
-  digitalWrite (IN3, LOW);
+  digitalWrite (IN1, LOW);
+  digitalWrite (IN2, HIGH);
   }
   else {
-  digitalWrite (IN3, HIGH);
-  digitalWrite (IN4, LOW);
+  digitalWrite (IN1, LOW);
+  digitalWrite (IN2, HIGH);
   }
 //Lo ideal sería en funcion de la señal de error (ciclo de trabajo) saber cuanto variar el ancho de PWM
 
-  pwm=(pwm*sensibilidadC) + 2.5; //pasamos de valor de corriente a digital
+  pwm=abs(pwm*sensibilidadC + 2.5); //pasamos de valor de corriente a analogico para pasarlo a la PWM
   // Aplicamos PWM al pin ENB, modificando el ciclo de trabajo en funcion de la temperatura deseada
-  analogWrite(ENB,pwm);
+  analogWrite(ENA,pwm);
 }
