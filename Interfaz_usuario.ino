@@ -128,7 +128,7 @@ void loop(void) {
 
   // Check if any key has changed state
   for (uint8_t b = 0; b < 15; b++) {
-
+PrintTemp();
     if (b < 3) tft.setFreeFont(LABEL1_FONT);
     else tft.setFreeFont(LABEL2_FONT);
 
@@ -162,7 +162,7 @@ void loop(void) {
         
        Serial.println(numberBuffer);
        temp_seleccionada= atof(numberBuffer);
-       PrintTemp();
+     
 
          //funcion para que aparezca un aviso cuando la temperatura se estabilice
          if(entradas_temp[2]==temp_seleccionada) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
@@ -301,10 +301,13 @@ void status(const char *msg) {
 
 // Print temp
 void PrintTemp() {
-  tft.setCursor(TEMP_X,TEMP_Y);
-  tft.print("Temperatura:");
-  tft.setCursor(TEMP_X,(TEMP_Y+10));
-  tft.print(entradas_temp[2]);
+ tft.setCursor(TEMP_X, TEMP_Y);//Posición del texto en la pantalla
+  tft.setTextColor(ILI9341_GREEN);//Setea el color del texto en verde
+  tft.setTextSize(1);//Seteo del tamaño del texto
+  tft.println("Temp:");// Se imprime en patalla la "Temp:"
+   tft.setCursor(TEMP_X, (TEMP_Y+30));//Posición del texto en la pantalla
+  tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);//Setea el color del texto en blanco
+  tft.print(entradas_temp[2]);//Muestra la temperatura obtenida del sensor
 }
 
 //------------------------------------------------------------------------------------------
