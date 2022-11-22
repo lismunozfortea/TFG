@@ -306,8 +306,10 @@ void PrintTemp() {
   tft.setTextSize(1);//Seteo del tamaño del texto
   tft.println("Temp:");// Se imprime en patalla la "Temp:"
    tft.setCursor(TEMP_X, (TEMP_Y+30));//Posición del texto en la pantalla
-  tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);//Setea el color del texto en blanco
+  tft.fillRect(TEMP_X,TEMP_Y+12, 100, 50, ILI9341_BLACK);
+  tft.setTextColor(ILI9341_WHITE);//Setea el color del texto en blanco
   tft.print(entradas_temp[2]);//Muestra la temperatura obtenida del sensor
+
 }
 
 //------------------------------------------------------------------------------------------
