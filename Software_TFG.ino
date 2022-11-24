@@ -99,11 +99,11 @@ float q_temp[]= {9.12*pow(10,-26),1.87*pow(10,-27),8.93*pow(10,-26)}; //constant
 float q_corriente[]= {1.42,0.945,0.157}; //constantes PID corriente
 bool leidos=false;
 // Pines //
-#define  pin_tempF 32
-#define  pin_tempC 33
-#define  pin_corriente 34
-#define  IN1 13  // Input1 conectada al pin 13
-#define  IN2 14    // Input2 conectada al pin 14
+#define pin_tempF 32
+#define pin_tempC 33
+#define pin_corriente 34
+#define IN1 13  // Input1 conectada al pin 13
+#define IN2 14    // Input2 conectada al pin 14
 #define ENA 15    // ENA conectada al pin 15, PWM
 //Variables para las interrupciones //
 volatile int contador;
@@ -171,13 +171,7 @@ timerAlarmEnable(timer);
 //------------------------------------------------------------------------------------------
 
 void loop(void) {
-  //Comprobacion lectura de sensores
-  Serial.print("TempFria:");
-Serial.print(entradas_temp[2]);
-
-Serial.print("Corriente:");
-Serial.print(entradas_corriente[2]);
-//-------------------------------------------------
+ 
 
   uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
 
@@ -229,7 +223,6 @@ Serial.print(entradas_corriente[2]);
         status("Temperatura enviada, espere");
         Serial.println(numberBuffer);
        temp_seleccionada= atof(numberBuffer);
-
 
          //funcion para que aparezca un aviso cuando la temperatura se estabilice
          if(entradas_temp[2]==temp_seleccionada) //mas bien seria cuando dejara de variar pero provisionalmente pongo esto
@@ -285,7 +278,7 @@ ControlPuenteH(ciclo_trabajo);
   }
  }
 
-
+//*********FUNCIONES PARA LA INTERFAZ********//
 //------------------------------------------------------------------------------------------
 
 void drawKeypad()
@@ -388,18 +381,14 @@ void status(const char *msg) {
 }
 // Print temp
 void PrintTemp() {
-  tft.setCursor(TEMP_X,TEMP_Y);
-  tft.print("Temperatura:");
-  tft.setCursor(TEMP_X,(TEMP_Y+10));
-  tft.print(entradas_temp[2]);
-  /*tft.setCursor(TEMP_X, TEMP_Y);//Posición del texto en la pantalla
+  tft.setCursor(TEMP_X, TEMP_Y);//Posición del texto en la pantalla
   tft.setTextColor(ILI9341_GREEN);//Setea el color del texto en verde
   tft.setTextSize(1);//Seteo del tamaño del texto
-  tft.println("Temperatura:");// Se imprime en patalla la "Temperatura:"
-   tft.setCursor(TEMP_X, (TEMP_Y+10));//Posición del texto en la pantalla
+  tft.println("Temp:");// Se imprime en patalla la "Temp:"
+   tft.setCursor(TEMP_X, (TEMP_Y+30));//Posición del texto en la pantalla
+   tft.fillRect(TEMP_X,TEMP_Y+12, 100, 50, ILI9341_BLACK);
   tft.setTextColor(ILI9341_WHITE);//Setea el color del texto en blanco
   tft.print(entradas_temp[2]);//Muestra la temperatura obtenida del sensor
-  tft.println("C");//Imprime "C"*/
 }
 
 //------------------------------------------------------------------------------------------
@@ -433,12 +422,12 @@ if(leidos==true){
 //Valor sensores de temperatura 
 entradas_temp[0]=entradas_temp[1];
 entradas_temp[1]=entradas_temp[2];
-entradas_temp[2]= (lectura_tempF/sensibilidadT)-4;
-valor_tempC= (lectura_tempC/sensibilidadT)-4;
+entradas_temp[2]= ((lectura_tempF/sensibilidadT)-4);
+valor_tempC= ((lectura_tempC/sensibilidadT)-4);
 //Valor sensor de corriente
 entradas_corriente[0]=entradas_corriente[1];
 entradas_corriente[1]=entradas_corriente[2];
-entradas_corriente[2]= (lectura_corriente-2.5)/sensibilidadC; //formula desarrollada en la memoria
+entradas_corriente[2]= ((lectura_corriente-2.5)/sensibilidadC); //formula desarrollada en la memoria
 leidos=false;
 }
 }
