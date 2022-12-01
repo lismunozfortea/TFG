@@ -1,6 +1,7 @@
 #include <analogWrite.h>
 #include <lvgl.h>
 #include <TFT_eSPI.h>
+#include <driver/adc.h>
 
 //*********VARIABLES DE LA INTERFAZ********//
 
@@ -52,9 +53,9 @@ float q_temp[]= {9.12*pow(10,-26),1.87*pow(10,-27),8.93*pow(10,-26)}; //constant
 float q_corriente[]= {1.42,0.945,0.157}; //constantes PID corriente
 bool leidos=false;
 // Pines //
-#define pin_tempF 32
+/*#define pin_tempF 32
 #define pin_tempC 33
-#define pin_corriente 34
+#define pin_corriente 34*/
 #define IN1 13  // Input1 conectada al pin 13
 #define IN2 14    // Input2 conectada al pin 14
 #define ENA 15    // ENA conectada al pin 15, PWM
@@ -142,7 +143,6 @@ void setup() {
   // Use serial port
   Serial.begin(115200);
 
-  
    //*********SETUP INTERFAZ LVGL********//
 
     String LVGL_Arduino = "Hello Arduino! ";
@@ -260,6 +260,12 @@ void setup() {
  //////////////////////////////////////////////////////////////////////////////ACTUALIZAR CON TEMPERATURA EN LOOP/////////////////7
    //*********SETUP GENERAL********//
 
+  //Setup adc channels
+  adc1_config_width(ADC_WIDTH_12Bit);
+  adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11);// using GPIO 34 corriente (ajustar DB en función de lo que necesitemos)
+  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11);// using GPIO 32 temp fria 
+  adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11);// using GPIO 33 temp caliente
+
   //Setup pines puente H 
  pinMode (ENA, OUTPUT); 
  pinMode (IN1, OUTPUT);
@@ -285,6 +291,18 @@ void loop(void) {
   lv_timer_handler(); /* let the GUI do its work */
 
     delay(5); //Igual hay que quitarlo!!!
+
+ //Accion si se sobrepasasa determinada corriente
+  if (entradas_corriente[2]=3.0)
+{ciclo_trabajo=0; 
+digitalWrite(IN1,LOW);
+digitalWrite(IN2,LOW);
+}
+
+//Accion si se sobrepasa determinado valor de temperatura
+ if(valor_tempC=40.0){
+    lv_led_on(led1);
+    }
 
       //*********MANEJO DE INTERRUPCIONES********//
 if (contador>0) {
@@ -329,9 +347,14 @@ float PID(float u[2], float e[2], float consigna, float q[2]){
 
 //Funciones para la lectura/escritura de los valores de los sensores //
 void LecturaSensores(){ //lee de los pines ADC el valor de los sensores, estos pines tienen resolución de 12 bits, leen de 0 a 4095 donde 0 es 0V y 4095 3.3V
-lectura_tempF= analogRead(pin_tempF)* (3.3 / 4096.0);
+lectura_tempF= float(adc1_get_raw(ADC1_CHANNEL_4))* (3.3 / 4096.0);
+lectura_tempC= float(adc1_get_raw(ADC1_CHANNEL_5))* (3.3 / 4096.0);
+lectura_corriente= float(adc1_get_raw(ADC1_CHANNEL_6))* (3.3 / 4096.0);
+
+/*lectura_tempF= analogRead(pin_tempF)* (3.3 / 4096.0);
 lectura_tempC= analogRead(pin_tempC)* (3.3 / 4096.0);
-lectura_corriente= analogRead(pin_corriente)* (3.3 / 4096.0);
+lectura_corriente= analogRead(pin_corriente)* (3.3 / 4096.0);*/
+
 //activamos la variable auxiliar "leidos" para avisar a la otra funcion de que ya puede escribirlos
 leidos=true;
   }
