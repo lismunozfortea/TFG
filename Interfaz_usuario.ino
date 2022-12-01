@@ -1,6 +1,7 @@
 #include <lvgl.h>
 #include <TFT_eSPI.h>
 float temp_seleccionada;
+float valor_tempC;
 /*Change to your screen resolution*/
 static const uint16_t screenWidth  = 320;
 static const uint16_t screenHeight = 240;
@@ -219,4 +220,9 @@ void loop()
 {
     lv_timer_handler(); /* let the GUI do its work */
     delay(5);
+
+    //Accion si se sobrepasa determinado valor de temperatura
+ if(valor_tempC=40.0){
+    lv_led_on(led1);
+    }
 }
