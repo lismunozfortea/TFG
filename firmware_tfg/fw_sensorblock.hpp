@@ -17,11 +17,11 @@ namespace FW
     {
         // LM335 (from datasheet) 
         const double t_gain     = 0.01;   // Gain [V/K]
-        const double t_offset25 = 2.98;   // Offset@25ºC [V]
+        const double t_offset25 = 1.87;   // Offset@25ºC [V]
 
         // ACS712 5A (from datasheet)
         const double i_gain     = 0.185;  // Gain [V/A]
-        const double i_offset0  = 0.500;  // Offset@0A [V]
+        const double i_offset0  = 2.500;  // Offset@0A [V]
 
         double m_t_cold;
         double m_t_hot;
