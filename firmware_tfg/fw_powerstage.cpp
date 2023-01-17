@@ -12,14 +12,14 @@ void PowerStage::begin(void)
     const mcpwm_config_t mcpwm_conf {
         .frequency    = 25000u,  // Hz
         .cmpr_a       = 0.0f,    // %
-        .cmpr_b       = 0.0f,    // %
+        .cmpr_b       = 50.0f,    // %
         .duty_mode    = MCPWM_DUTY_MODE_0,
         .counter_mode = MCPWM_UP_COUNTER
     };
 
-    gpio_set_level(m_en, 0);
-    gpio_set_direction(m_en, GPIO_MODE_OUTPUT);
     mcpwm_set_pin(MCPWM_UNIT_0, &pin_config);
+    gpio_set_level(m_en, 0);
+    gpio_set_direction(m_en, GPIO_MODE_OUTPUT); 
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &mcpwm_conf);
     mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
     gpio_set_level(m_en, 1);

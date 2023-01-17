@@ -4,6 +4,7 @@ using namespace FW;
 
 void SensorBlock::begin(void)
 {
+ 
     // Configure ADC
     adc1_config_width(ADC_WIDTH_12Bit);
     adc1_config_channel_atten(ADC1_TCOLD_CHANNEL, ADC_ATTEN_DB_11);

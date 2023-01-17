@@ -59,6 +59,7 @@ void setup(void)
     gui_begin();
     snsrblk.begin();
     pwrstg.begin();
+
 }
 
 void loop(void) {
@@ -76,8 +77,8 @@ void loop(void) {
 
 static void ctrl_loop_update(void)
 {
+   
     static op_status_t op_status {OS_NORMAL};
-
     switch (op_status)
     {
         OS_NORMAL:

@@ -9,7 +9,7 @@
 
 static const uint16_t screenWidth  = TFT_WIDTH;
 static const uint16_t screenHeight = TFT_HEIGHT;
-static /* const */ uint16_t calData[] = {444, 3356, 366, 3336, 1};
+static /* const */ uint16_t calData[] = {459, 3208, 428, 3344, 2};
 
 /****************************************** GUI private constants ***/
 
@@ -105,7 +105,7 @@ static void lv_spinbox_value_event_cb(lv_event_t * e)
 static void lvgl_setup(void)
 {
     tft.begin();         // TFT init
-    tft.setRotation(0);  // Landscape orientation
+    tft.setRotation(2);  // Landscape orientation
 
     /*Set the touchscreen calibration data,
      the actual data for your display can be acquired using

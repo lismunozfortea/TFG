@@ -3,6 +3,9 @@
 
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
+#include "Arduino.h"
+
+
 
 // ADC1 channels
 #define ADC1_TCOLD_CHANNEL ADC1_GPIO32_CHANNEL  // Cold plate temperature on GPIO32
@@ -16,8 +19,8 @@ namespace FW
     class SensorBlock
     {
         // LM335 (from datasheet) 
-        const double t_gain     = 0.01;   // Gain [V/K]
-        const double t_offset25 = 1.87;   // Offset@25ºC [V]
+        const double t_gain     = 0.00647;   // Gain [V/K]
+        const double t_offset25 = 1.92;   // Offset@25ºC [V]
 
         // ACS712 5A (from datasheet)
         const double i_gain     = 0.185;  // Gain [V/A]
@@ -39,8 +42,11 @@ namespace FW
         void   update(void);
     };
 
+
     inline void SensorBlock::update(void)
     {
+      
+
         const double t_offset0 = t_offset25 - 25.0 * t_gain;  // Offset@0ºC [V]
 
         // Sample analogic sensors
@@ -61,6 +67,17 @@ namespace FW
         m_t_cold = ((double)t_cold_mv * 1e-3 - t_offset0) / t_gain;  // Tcold [ºC]
         m_t_hot  = ((double)t_hot_mv  * 1e-3 - t_offset0) / t_gain;  // Thot  [ºC]
         m_i_tem  = ((double)i_tem_mv  * 1e-3 - i_offset0) / i_gain;  // Item  [A]
+
+
+     // Serial.print("Caliente:");
+     // Serial.println(m_t_hot );
+      //Serial.print("Frio:");
+     // Serial.println(m_t_cold);
+      //Serial.print("Corriente:");
+      //Serial.println(m_i_tem);
+
+
+
     }
 }
 
