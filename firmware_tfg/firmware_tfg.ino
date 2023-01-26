@@ -40,10 +40,10 @@ const struct FW::PidParameters pid_i_pams = { // Current
 
 /*** Global variables ***********************************************/
 
-FW::PidController t_pid   {25.0, pid_t_pams};  // Tcold PID controller
-FW::PidController i_pid   { 0.0, pid_i_pams};  // Item  PID controller
+FW::PidController t_pid   {25.0,   3.0, pid_t_pams};    // Tcold PID controller
+FW::PidController i_pid   { 0.0, 100.0, pid_i_pams};    // Item  PID controller
 FW::PowerStage    pwrstg  {IN1_PIN, IN2_PIN, ENA_PIN};  // Power stage
-FW::SensorBlock   snsrblk;                     // Analog sensor block
+FW::SensorBlock   snsrblk;                              // Analog sensor block
 
 /*********************************************** Global variables ***/
 

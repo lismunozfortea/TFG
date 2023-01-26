@@ -1,6 +1,8 @@
 #if !defined(FW_PID_HPP)
 #define FW_PID_HPP
 
+#include <cmath>
+
 namespace FW {
     struct PidParameters
     {
@@ -13,8 +15,9 @@ namespace FW {
         double m_e[3];
         double m_y[1];
         double m_ref;
+        double m_sat;
     public:
-        PidController(double ref, const struct PidParameters& params);
+        PidController(double ref, double sat, const struct PidParameters& params);
         double output(double input);
         double reference() const { return m_ref; }
         void   reference(double ref) { m_ref = ref; }
@@ -33,6 +36,8 @@ namespace FW {
                 + m_coef[0] * m_e[0]
                 + m_coef[1] * m_e[1]
                 + m_coef[2] * m_e[2];
+        if (std::abs(y) > m_sat)
+            y = copysign(m_sat, y);
         m_e[2] = m_e[1];
         m_e[1] = m_e[0];
         m_y[0] = y;
