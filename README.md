@@ -1,1 +1,2 @@
-# TFG
+# Software del TFG: Desarrollo de una cámara térmica basada en una célula Peltier y un regulador digital basado en microprocesador para la caracterización de sensores de temperatura en las prácticas de Instrumentación Electrónica
+ El código se encuentra dividido en disntintos archivos .cpp y .hpp que representan cada una de las funcionalidades que realiza el software, todos ellos som ejecutados desde el archivo principal firmware_tfg.ino para Arduino. 
