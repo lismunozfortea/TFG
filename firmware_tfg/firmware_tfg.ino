@@ -3,6 +3,7 @@
 #include "fw_powerstage.hpp"
 #include "fw_sensorblock.hpp"
 
+
 /*** #defines *******************************************************/
 
 // Pins
@@ -23,16 +24,22 @@ const double i_tem_max    =  3.0;     // [A]  Maximum TE module current
 const unsigned long t_sampling = 10000ul;  // Sampling time [us]
 
 const struct FW::PidParameters pid_t_pams = { // Temperature
-  .Kp = 9.12e-26,
+  .Kp = 10,
+  .Ki =0,
+  .Kd = 0,
+  /*.Kp = 9.12e-26,
   .Ki = 1.87e-27,
-  .Kd = 8.93e-26,
+  .Kd = 8.93e-26,*/
   .T  = t_sampling * 1e-6
 };
 
 const struct FW::PidParameters pid_i_pams = { // Current
-  .Kp = 1.420,
+  .Kp = 10,
+  .Ki =0,
+  .Kd = 0,
+  /*.Kp = 1.420,
   .Ki = 0.945,
-  .Kd = 0.157,
+  .Kd = 0.157,*/
   .T  = t_sampling * 1e-6
 };
 
@@ -77,8 +84,9 @@ void loop(void) {
 
 static void ctrl_loop_update(void)
 {
-   
+
     static op_status_t op_status {OS_NORMAL};
+   
     switch (op_status)
     {
         OS_NORMAL:
@@ -118,6 +126,7 @@ static void ctrl_loop_update(void)
 
                 // Update bridge duty cycle
                 pwrstg.duty(duty_cycle);
+                
             }
             break;
 

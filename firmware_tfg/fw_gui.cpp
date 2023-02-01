@@ -5,6 +5,7 @@
 #include <lvgl.h>
 #include <TFT_eSPI.h>
 
+
 /*** GUI private constants ******************************************/
 
 static const uint16_t screenWidth  = TFT_WIDTH;

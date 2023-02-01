@@ -12,7 +12,7 @@ void PowerStage::begin(void)
     const mcpwm_config_t mcpwm_conf {
         .frequency    = 25000u,  // Hz
         .cmpr_a       = 0.0f,    // %
-        .cmpr_b       = 50.0f,    // %
+        .cmpr_b       = 0.0f,    // %
         .duty_mode    = MCPWM_DUTY_MODE_0,
         .counter_mode = MCPWM_UP_COUNTER
     };
